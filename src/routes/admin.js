@@ -139,7 +139,7 @@ router.get('/relatorio/usuarios', verificarSessao, verificarAdmin, async (req, r
     try {
         const rows = await all(`
             SELECT DISTINCT u.id, u.nome, u.email, u.telefone, u.status, u.data_cadastro,
-                   COUNT(a.id)::int as total_agendamentos,
+                 COUNT(a.id) FILTER (WHERE a.status <> 'cancelado')::int as total_agendamentos,
                    COALESCE(SUM(CASE WHEN a.status = 'presente' THEN 1 ELSE 0 END), 0)::int as presencas,
                    COALESCE(SUM(CASE WHEN a.status = 'ausente' THEN 1 ELSE 0 END), 0)::int as ausencias,
                    COALESCE(SUM(CASE WHEN a.status = 'confirmado' THEN 1 ELSE 0 END), 0)::int as confirmados
