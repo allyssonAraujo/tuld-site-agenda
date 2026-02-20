@@ -1,0 +1,153 @@
+/**
+ * Rotas de Autenticação
+ */
+
+const express = require('express');
+const router = express.Router();
+const Usuario = require('../models/Usuario');
+
+/**
+ * POST /api/login - Processar login
+ */
+router.post('/api/login', async (req, res) => {
+    const { email, senha } = req.body;
+    
+    if (!email || !senha) {
+        return res.status(400).json({ error: 'Preencha todos os campos.' });
+    }
+    
+    const resultado = await Usuario.login(email, senha);
+    
+    if (resultado.error) {
+        return res.status(401).json({ error: resultado.error });
+    }
+    
+    // Login bem-sucedido
+    req.session.usuario = resultado;
+    return res.json({ 
+        success: true, 
+        usuario: resultado 
+    });
+});
+
+/**
+ * POST /api/cadastro - Processar cadastro
+ */
+router.post('/api/cadastro', async (req, res) => {
+    const { nome, email, telefone, senha, confirmar_senha } = req.body;
+    
+    if (!nome || !email || !senha) {
+        return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
+    }
+    
+    if (senha !== confirmar_senha) {
+        return res.status(400).json({ error: 'As senhas não coincidem.' });
+    }
+    
+    // Criar usuário
+    const resultado = await Usuario.criar({ nome, email, telefone, senha });
+    
+    if (resultado.error) {
+        return res.status(400).json({ error: resultado.error });
+    }
+    
+    return res.json({ 
+        success: true, 
+        message: 'Cadastro realizado com sucesso! Faça login para continuar.' 
+    });
+});
+
+/**
+ * POST /api/alterar-senha - Alterar senha
+ */
+router.post('/api/alterar-senha', (req, res) => {
+    if (!req.session.usuario) {
+        return res.status(401).json({ error: 'Não autenticado' });
+    }
+    
+    const { senhaAtual, senhaNova, confirmarSenha } = req.body;
+    
+    if (!senhaAtual || !senhaNova || !confirmarSenha) {
+        return res.status(400).json({ error: 'Preencha todos os campos.' });
+    }
+    
+    if (senhaNova !== confirmarSenha) {
+        return res.status(400).json({ error: 'As senhas não coincidem.' });
+    }
+    
+    Usuario.alterarSenha(req.session.usuario.id, senhaAtual, senhaNova).then(resultado => {
+        if (resultado.error) {
+            return res.status(400).json({ error: resultado.error });
+        }
+        
+        return res.json({ success: true, message: 'Senha alterada com sucesso!' });
+    }).catch(err => {
+        console.error('Erro:', err);
+        return res.status(500).json({ error: 'Erro ao alterar senha' });
+    });
+});
+
+/**
+ * POST /api/editar-perfil - Atualizar perfil
+ */
+router.post('/api/editar-perfil', (req, res) => {
+    if (!req.session.usuario) {
+        return res.status(401).json({ error: 'Não autenticado' });
+    }
+    
+    const { nome, telefone } = req.body;
+    
+    Usuario.atualizarPerfil(req.session.usuario.id, { nome, telefone }).then(resultado => {
+        if (resultado.error) {
+            return res.status(400).json({ error: resultado.error });
+        }
+        
+        // Atualizar sessão
+        req.session.usuario.nome = nome;
+        req.session.usuario.telefone = telefone;
+        
+        return res.json({ 
+            success: true, 
+            message: 'Perfil atualizado com sucesso!',
+            usuario: req.session.usuario 
+        });
+    }).catch(err => {
+        console.error('Erro:', err);
+        return res.status(500).json({ error: 'Erro ao atualizar perfil' });
+    });
+});
+
+/**
+ * GET /api/usuario - Obter dados do usuário autenticado
+ */
+router.get('/api/usuario', (req, res) => {
+    if (!req.session.usuario) {
+        return res.status(401).json({ error: 'Não autenticado' });
+    }
+    
+    Usuario.buscarPorId(req.session.usuario.id).then(usuario => {
+        if (!usuario) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        
+        delete usuario.senha;
+        return res.json(usuario);
+    }).catch(err => {
+        console.error('Erro:', err);
+        return res.status(500).json({ error: 'Erro ao buscar usuário' });
+    });
+});
+
+/**
+ * GET /api/sair - Logout
+ */
+router.get('/api/sair', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Erro ao sair' });
+        }
+        return res.json({ success: true, redirect: '/' });
+    });
+});
+
+module.exports = router;

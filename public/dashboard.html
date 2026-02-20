@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - T.U.L.D.</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="/img/logremov.jpg" alt="Logo Terreiro" style="height:56px;vertical-align:middle;margin-right:10px;"> <h1 style="display:inline-block;vertical-align:middle;">T.U.L.D.</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/dashboard.html" class="nav-link active">Dashboard</a>
+                <a href="/meus-agendamentos.html" class="nav-link">Meus Agendamentos</a>
+                <a href="/editar-perfil.html" class="nav-link">Perfil</a>
+                <button id="btnSair" class="btn btn-secondary">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Seção de Boas-vindas -->
+            <section class="card mb-4 terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-content">
+                    <h2>Bem-vindo! 👋</h2>
+                    <p id="usuarioNome" class="text-lg mt-2"></p>
+                    <div id="statusBloqueioBanner" class="alert alert-warning mt-3" style="display: none;">
+                        <strong>⚠️ Sua conta está bloqueada</strong>
+                        <p id="bloqueioTexto"></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Estatísticas -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total de Agendamentos</h3>
+                    <p class="stat-value" id="totalAgendamentos">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Presenças</h3>
+                    <p class="stat-value text-success" id="totalPresencas">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Ausências</h3>
+                    <p class="stat-value text-danger" id="totalAusencias">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Taxa de Presença</h3>
+                    <p class="stat-value text-info" id="taxaPresenca">0%</p>
+                </div>
+            </section>
+
+            <!-- Eventos Disponíveis -->
+            <section class="card terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-header">
+                    <h3>📅 Eventos Disponíveis</h3>
+                    <p class="text-muted">Clique em um evento para agendar</p>
+                </div>
+
+                <div id="eventosList" class="eventos-grid">
+                    <!-- Carregado via JavaScript -->
+                </div>
+
+                <div id="nenhunEvento" class="alert alert-info" style="display: none;">
+                    Nenhum evento disponível no momento.
+                </div>
+            </section>
+
+            <!-- Admin Panel (visível apenas para admin) -->
+            <section id="adminPanel" class="card terreiro" style="display:none; margin-top:20px;">
+                <div class="card-header">
+                    <h3>⚙️ Painel de Administração</h3>
+                </div>
+
+                <div class="card-content" style="text-align: center;">
+                    <p style="margin-bottom: 20px;">Gerencie eventos, relatórios e usuários do sistema.</p>
+                    <a href="/admin-eventos.html" class="btn btn-primary" style="display: inline-block; padding: 12px 30px; text-decoration: none;">
+                        📋 Gerenciar Eventos
+                    </a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal de Agendamento -->
+    <div id="agendarModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirmar Agendamento</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="eventoDetalhes"></div>
+                <p class="mt-3 text-info">
+                    <strong>Ao confirmar, você está se comprometendo a comparecer.</strong>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-action="close">Cancelar</button>
+                <button class="btn btn-primary" id="btnConfirmarAgendamento">Confirmar Agendamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Sucesso -->
+    <div id="sucessoModal" class="modal">
+        <div class="modal-content modal-success">
+            <div class="modal-body">
+                <h2>✅ Agendamento Confirmado!</h2>
+                <p class="mt-3 text-muted">Seu agendamento foi registrado com sucesso.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-action="close">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        // Código específico do dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarDashboard();
+        });
+
+        async function carregarDashboard() {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                
+                // Carregar eventos
+                const eventosRes = await fetch('/api/dashboard/eventos', { headers });
+                if (!eventosRes.ok) throw new Error('Erro ao carregar eventos');
+                const eventosData = await eventosRes.json();
+                
+                // Carregar stats
+                const statsRes = await fetch('/api/dashboard/stats', { headers });
+                if (!statsRes.ok) throw new Error('Erro ao carregar estatísticas');
+                const statsData = await statsRes.json();
+                
+                // Preencher dados
+                document.getElementById('usuarioNome').textContent = `Olá, ${statsData.usuario.nome}!`;
+                document.getElementById('totalAgendamentos').textContent = statsData.agendamentos.total;
+                document.getElementById('totalPresencas').textContent = statsData.agendamentos.presentes;
+                document.getElementById('totalAusencias').textContent = statsData.agendamentos.ausentes;
+                document.getElementById('taxaPresenca').textContent = statsData.agendamentos.taxa_presenca + '%';
+                
+                // Mostrar alerta de bloqueio se necessário
+                if (statsData.usuario.status === 'bloqueado') {
+                    document.getElementById('statusBloqueioBanner').style.display = 'block';
+                    const data = new Date(statsData.usuario.bloqueado_ate);
+                    document.getElementById('bloqueioTexto').textContent = 
+                        `Você terá acesso liberado a partir de ${data.toLocaleDateString('pt-BR')}. Motivo: Excesso de ausências.`;
+                }
+                
+                // Renderizar eventos
+                renderizarEventos(eventosData.eventos, statsData.usuario.status === 'ativo');
+
+                // Mostrar painel admin se for administrador (id == 1)
+                if (statsData.usuario && statsData.usuario.id === 1) {
+                    document.getElementById('adminPanel').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem('Erro ao carregar dados. Tente recarregar a página.', 'error');
+            }
+        }
+
+        function renderizarEventos(eventos, podeAgendar) {
+            const container = document.getElementById('eventosList');
+            container.innerHTML = '';
+            
+            if (eventos.length === 0) {
+                document.getElementById('nenhunEvento').style.display = 'block';
+                return;
+            }
+            
+            eventos.forEach(evento => {
+                const dataEvento = new Date(evento.data_evento + ' ' + evento.hora_evento);
+                const card = document.createElement('div');
+                card.className = 'evento-card';
+                
+                // Determinar se o botão deve estar desabilitado
+                const botaoDesabilitado = !podeAgendar || evento.ja_agendado;
+                const textoAdicional = evento.ja_agendado ? ' (Você já está agendado)' : '';
+                
+                card.innerHTML = `
+                    <div class="evento-header">
+                        <h3>${evento.titulo}</h3>
+                        <span class="badge badge-success">Disponível</span>
+                    </div>
+                    <p class="texto-truncado">${evento.descricao || 'Sem descrição'}</p>
+                    <div class="evento-info">
+                        <p><strong>📅 Data:</strong> ${dataEvento.toLocaleDateString('pt-BR')}</p>
+                        <p><strong>🕐 Horário:</strong> ${evento.hora_evento}</p>
+                        <p><strong>📍 Local:</strong> ${evento.local}</p>
+                        <p><strong>🚪 Portão:</strong> ${evento.abertura_portao}</p>
+                    </div>
+                    <button class="btn btn-primary btn-block mt-3" ${botaoDesabilitado ? 'disabled' : ''} 
+                        onclick="abrirModalAgendamento(${evento.id}, '${evento.titulo}')"
+                        title="${evento.ja_agendado ? 'Você já está agendado para este evento' : ''}">
+                        Agendar${textoAdicional}
+                    </button>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        let eventoEmAgendamento = null;
+
+        function abrirModalAgendamento(eventoId, eventoTitulo) {
+            document.getElementById('eventoDetalhes').innerHTML = `
+                <p><strong>Evento:</strong> ${eventoTitulo}</p>
+                <p class="text-info mt-2">Ao clicar em confirmar, você estará se comprometendo a comparecer.</p>
+            `;
+            eventoEmAgendamento = eventoId;
+            document.getElementById('agendarModal').style.display = 'flex';
+        }
+
+        document.getElementById('btnConfirmarAgendamento').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/agendamento/criar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ evento_id: eventoEmAgendamento })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro ao agendar');
+                }
+                
+                document.getElementById('agendarModal').style.display = 'none';
+                document.getElementById('sucessoModal').style.display = 'flex';
+                
+                // Recarregar dados
+                setTimeout(() => {
+                    carregarDashboard();
+                }, 2000);
+                
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        });
+
+    </script>
+</body>
+</html>

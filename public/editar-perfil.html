@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Perfil - T.U.L.D.</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="/img/logremov.jpg" alt="Logo Terreiro" style="height:56px;vertical-align:middle;margin-right:10px;"> <h1 style="display:inline-block;vertical-align:middle;">T.U.L.D.</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/dashboard.html" class="nav-link">Dashboard</a>
+                <a href="/meus-agendamentos.html" class="nav-link">Meus Agendamentos</a>
+                <a href="/editar-perfil.html" class="nav-link active">Perfil</a>
+                <button id="btnSair" class="btn btn-secondary">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <div class="container">
+            <div class="row">
+                <!-- Abas de Perfil -->
+                <div style="width: 100%; margin-bottom: 2rem;">
+                    <div class="profile-tabs">
+                        <button class="profile-tab-btn active" data-tab="editar">Editar Perfil</button>
+                        <button class="profile-tab-btn" data-tab="senha">Alterar Senha</button>
+                    </div>
+                </div>
+
+                <!-- Aba: Editar Perfil -->
+                <div class="profile-tab-content active" data-content="editar" style="width: 100%;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>👤 Editar Perfil</h2>
+                        </div>
+
+                        <form id="editarPerfilForm" class="profile-form">
+                            <div class="form-group">
+                                <label for="perfilNome">Nome Completo</label>
+                                <input type="text" id="perfilNome" name="nome" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="perfilEmail">Email</label>
+                                <input type="email" id="perfilEmail" disabled>
+                                <small class="form-hint">Email não pode ser alterado</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="perfilTelefone">Telefone</label>
+                                <input type="tel" id="perfilTelefone" name="telefone" placeholder="(11) 99999-9999">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Seu Status</label>
+                                <div class="info-box" id="statusInfo"></div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                <button type="reset" class="btn btn-secondary">Cancelar</button>
+                            </div>
+
+                            <div class="form-message" id="perfilMessage"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Aba: Alterar Senha -->
+                <div class="profile-tab-content" data-content="senha" style="width: 100%;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>🔐 Alterar Senha</h2>
+                        </div>
+
+                        <form id="alterarSenhaForm" class="profile-form">
+                            <div class="form-group">
+                                <label for="senhaAtual">Senha Atual</label>
+                                <div class="password-input">
+                                    <input type="password" id="senhaAtual" name="senhaAtual" required>
+                                    <button type="button" class="toggle-password" data-input="senhaAtual">
+                                        <span class="eye-icon">👁️</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="senhaNova">Nova Senha</label>
+                                <div class="password-input">
+                                    <input type="password" id="senhaNova" name="senhaNova" required>
+                                    <button type="button" class="toggle-password" data-input="senhaNova">
+                                        <span class="eye-icon">👁️</span>
+                                    </button>
+                                </div>
+                                <small class="form-hint password-strength">
+                                    Requisitos: 8+ caracteres • Letras • Números • Caracteres especiais
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmarSenha">Confirmar Nova Senha</label>
+                                <div class="password-input">
+                                    <input type="password" id="confirmarSenha" name="confirmarSenha" required>
+                                    <button type="button" class="toggle-password" data-input="confirmarSenha">
+                                        <span class="eye-icon">👁️</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Alterar Senha</button>
+                                <button type="reset" class="btn btn-secondary">Cancelar</button>
+                            </div>
+
+                            <div class="form-message" id="senhaMessage"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarDadosPerfil();
+            configuraAbas();
+            configuraFormularios();
+        });
+
+        function configuraAbas() {
+            document.querySelectorAll('.profile-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tab = btn.dataset.tab;
+                    
+                    // Remover active de todos
+                    document.querySelectorAll('.profile-tab-btn').forEach(b => 
+                        b.classList.remove('active'));
+                    document.querySelectorAll('.profile-tab-content').forEach(c => 
+                        c.classList.remove('active'));
+                    
+                    // Adicionar active ao clicado
+                    btn.classList.add('active');
+                    document.querySelector(`[data-content="${tab}"]`).classList.add('active');
+                });
+            });
+        }
+
+        async function carregarDadosPerfil() {
+            try {
+                const response = await fetch('/api/dashboard/stats');
+                if (!response.ok) throw new Error('Erro ao carregar dados');
+                
+                const data = await response.json();
+                const usuario = data.usuario;
+                
+                document.getElementById('perfilNome').value = usuario.nome;
+                document.getElementById('perfilEmail').value = usuario.email;
+                document.getElementById('perfilTelefone').value = usuario.telefone || '';
+                
+                // Mostrar status
+                let statusHTML = `<p><strong>Status:</strong> ${usuario.status === 'ativo' ? '✅ Ativo' : '❌ Bloqueado'}</p>`;
+                
+                if (usuario.status === 'bloqueado') {
+                    const dataDesbloqueio = new Date(usuario.bloqueado_ate);
+                    statusHTML += `<p><strong>Liberado em:</strong> ${dataDesbloqueio.toLocaleDateString('pt-BR')}</p>`;
+                    statusHTML += `<p><strong>Faltas Totais:</strong> ${usuario.total_faltas}</p>`;
+                }
+                
+                document.getElementById('statusInfo').innerHTML = statusHTML;
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem('Erro ao carregar dados do perfil', 'error');
+            }
+        }
+
+        function configuraFormularios() {
+            // Formulário de editar perfil
+            document.getElementById('editarPerfilForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const nome = document.getElementById('perfilNome').value;
+                const telefone = document.getElementById('perfilTelefone').value;
+                
+                try {
+                    const response = await fetch('/api/dashboard/perfil', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nome, telefone })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Erro ao atualizar perfil');
+                    }
+                    
+                    mostrarMensagem(data.message || 'Perfil atualizado com sucesso!', 'success', 'perfilMessage');
+                    
+                } catch (error) {
+                    mostrarMensagem(error.message, 'error', 'perfilMessage');
+                }
+            });
+            
+            // Formulário de alterar senha
+            document.getElementById('alterarSenhaForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const senhaAtual = document.getElementById('senhaAtual').value;
+                const senhaNova = document.getElementById('senhaNova').value;
+                const confirmarSenha = document.getElementById('confirmarSenha').value;
+                
+                if (senhaNova !== confirmarSenha) {
+                    mostrarMensagem('As senhas não coincidem', 'error', 'senhaMessage');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/alterar-senha', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            senhaAtual, 
+                            senhaNova, 
+                            confirmarSenha 
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Erro ao alterar senha');
+                    }
+                    
+                    mostrarMensagem(data.message, 'success', 'senhaMessage');
+                    document.getElementById('alterarSenhaForm').reset();
+                    
+                } catch (error) {
+                    mostrarMensagem(error.message, 'error', 'senhaMessage');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

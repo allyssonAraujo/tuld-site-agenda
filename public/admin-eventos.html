@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Eventos - T.U.L.D. Admin</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-light">
+        <!-- marca d'água agora via CSS global -->
+        <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="/img/logremov.jpg" alt="Logo Terreiro" style="height:64px;vertical-align:middle;margin-right:12px;"> <h1 style="display:inline-block;vertical-align:middle;">T.U.L.D. - Admin</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/dashboard.html" class="nav-link">← Voltar ao Dashboard</a>
+                <a href="/admin-usuarios.html" class="nav-link">👥 Relatório de Usuários</a>
+                <button id="btnSair" class="btn btn-secondary">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <section class="card mb-4 terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-content">
+                    <h2>📋 Gerenciar Eventos</h2>
+                    <p class="text-muted">Crie, edite e delete eventos do sistema.</p>
+                </div>
+            </section>
+
+            <!-- Seção Criar Evento -->
+            <section class="card mb-4 terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-header">
+                    <h3>✨ Criar Novo Evento</h3>
+                </div>
+
+                <div class="card-content">
+                    <form id="createEventForm" class="terreiro">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="form-group">
+                                <label>Título do Evento <span style="color: red;">*</span></label>
+                                <input type="text" id="evtTitulo" placeholder="Ex: Workshop Python" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Data do Evento <span style="color: red;">*</span></label>
+                                <input type="date" id="evtData" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Horário <span style="color: red;">*</span></label>
+                                <input type="time" id="evtHora" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Vagas Totais <span style="color: red;">*</span></label>
+                                <input type="number" id="evtVagas" value="50" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Local</label>
+                                <input type="text" id="evtLocal" placeholder="Ex: Auditório Principal">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Abertura do Portão</label>
+                                <input type="time" id="evtAbertura">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Descrição</label>
+                            <textarea id="evtDescricao" placeholder="Descreva o evento..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Observações (internas)</label>
+                            <textarea id="evtObservacoes" placeholder="Notas internas sobre o evento..."></textarea>
+                        </div>
+
+                        <button class="btn btn-primary btn-block" type="submit">Criar Evento</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Seção Lista de Eventos -->
+            <section class="card terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-header">
+                    <h3>📅 Todos os Eventos</h3>
+                    <p class="text-muted">Clique no evento para editar ou deletar</p>
+                </div>
+
+                <div class="card-content">
+                    <div id="eventosList" style="display: flex; flex-direction: column; gap: 15px;">
+                        <p class="text-muted text-center">Carregando eventos...</p>
+                    </div>
+
+                    <div id="nenhunEvento" class="alert alert-info" style="display: none; text-align: center;">
+                        <p>Nenhum evento cadastrado ainda.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal Editar Evento -->
+    <div id="editEventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Evento</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editEventForm">
+                    <div class="form-group">
+                        <label>Título</label>
+                        <input type="text" id="editEvtTitulo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="editEvtData" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Horário</label>
+                        <input type="time" id="editEvtHora" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Local</label>
+                        <input type="text" id="editEvtLocal">
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea id="editEvtDescricao"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-action="close">Cancelar</button>
+                <button class="btn btn-primary" id="btnConfirmarEdicao">Salvar Alterações</button>
+                <button class="btn btn-danger" id="btnDeletarEvento" style="margin-left: auto;">Deletar Evento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmação Delete -->
+    <div id="confirmDeleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirmar Exclusão</h2>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja deletar o evento <strong id="deleteEventName"></strong>?</p>
+                <p style="color: #f44336; margin-top: 10px;"><strong>⚠️ Essa ação não pode ser desfeita.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-action="close">Cancelar</button>
+                <button class="btn btn-danger" id="btnConfirmarDelete">Deletar Permanentemente</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        let eventoEmEdicao = null;
+
+        // Carregar eventos ao iniciar página
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarEventos();
+            document.getElementById('createEventForm').addEventListener('submit', criarEvento);
+            document.getElementById('btnSair').addEventListener('click', sair);
+        });
+
+        // Fechar modais
+        document.querySelectorAll('[data-action="close"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('editEventModal').style.display = 'none';
+                document.getElementById('confirmDeleteModal').style.display = 'none';
+            });
+        });
+
+        document.querySelectorAll('.modal-close').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.modal').style.display = 'none';
+            });
+        });
+
+        async function carregarEventos() {
+            try {
+                const res = await fetch('/api/dashboard/eventos');
+                if (!res.ok) throw new Error('Erro ao carregar eventos');
+                const data = await res.json();
+
+                const container = document.getElementById('eventosList');
+                container.innerHTML = '';
+
+                if (data.eventos.length === 0) {
+                    document.getElementById('nenhunEvento').style.display = 'block';
+                    return;
+                }
+
+                data.eventos.forEach(evento => {
+                    const card = document.createElement('div');
+                    card.className = 'evento-card';
+                    card.style.cursor = 'pointer';
+                    card.style.marginBottom = '15px';
+                    
+                    const dataEvento = new Date(evento.data_evento + ' ' + evento.hora_evento);
+                    
+                    card.innerHTML = `
+                        <div class="evento-header">
+                            <h3>${evento.titulo}</h3>
+                            <span class="badge badge-info">${evento.vagas_disponiveis}/${evento.vagas_totais} vagas</span>
+                        </div>
+                        <p>${evento.descricao || 'Sem descrição'}</p>
+                        <div class="evento-info">
+                            <p><strong>📅 Data:</strong> ${dataEvento.toLocaleDateString('pt-BR')}</p>
+                            <p><strong>🕐 Horário:</strong> ${evento.hora_evento}</p>
+                            <p><strong>📍 Local:</strong> ${evento.local || 'A definir'}</p>
+                            <p><strong>Status:</strong> ${evento.status}</p>
+                        </div>
+                        <p style="font-size: 0.85rem; color: #999; margin-top: 10px;">Clique para editar ou deletar</p>
+                    `;
+
+                    card.addEventListener('click', () => abrirEdicaoEvento(evento));
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem('Erro ao carregar eventos', 'error');
+            }
+        }
+
+        async function criarEvento(e) {
+            e.preventDefault();
+            try {
+                const payload = {
+                    titulo: document.getElementById('evtTitulo').value,
+                    data_evento: document.getElementById('evtData').value,
+                    hora_evento: document.getElementById('evtHora').value,
+                    vagas_totais: parseInt(document.getElementById('evtVagas').value),
+                    local: document.getElementById('evtLocal').value,
+                    descricao: document.getElementById('evtDescricao').value,
+                    observacoes: document.getElementById('evtObservacoes').value,
+                    abertura_portao: document.getElementById('evtAbertura').value
+                };
+
+                const res = await fetch('/api/admin/eventos', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao criar evento');
+
+                mostrarMensagem('✓ Evento criado com sucesso!', 'success');
+                document.getElementById('createEventForm').reset();
+                carregarEventos();
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        }
+
+        function abrirEdicaoEvento(evento) {
+            eventoEmEdicao = evento;
+            document.getElementById('editEvtTitulo').value = evento.titulo;
+            document.getElementById('editEvtData').value = evento.data_evento;
+            document.getElementById('editEvtHora').value = evento.hora_evento;
+            document.getElementById('editEvtLocal').value = evento.local;
+            document.getElementById('editEvtDescricao').value = evento.descricao;
+            document.getElementById('editEventModal').style.display = 'flex';
+        }
+
+        document.getElementById('btnConfirmarEdicao').addEventListener('click', async () => {
+            try {
+                const payload = {
+                    titulo: document.getElementById('editEvtTitulo').value,
+                    data_evento: document.getElementById('editEvtData').value,
+                    hora_evento: document.getElementById('editEvtHora').value,
+                    local: document.getElementById('editEvtLocal').value,
+                    descricao: document.getElementById('editEvtDescricao').value
+                };
+
+                const res = await fetch(`/api/admin/eventos/${eventoEmEdicao.id}`, {
+                    method: 'PUT',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao atualizar');
+
+                mostrarMensagem('✓ Evento atualizado!', 'success');
+                document.getElementById('editEventModal').style.display = 'none';
+                carregarEventos();
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        });
+
+        document.getElementById('btnDeletarEvento').addEventListener('click', () => {
+            document.getElementById('deleteEventName').textContent = eventoEmEdicao.titulo;
+            document.getElementById('editEventModal').style.display = 'none';
+            document.getElementById('confirmDeleteModal').style.display = 'flex';
+        });
+
+        document.getElementById('btnConfirmarDelete').addEventListener('click', async () => {
+            try {
+                const res = await fetch(`/api/admin/eventos/${eventoEmEdicao.id}`, {
+                    method: 'DELETE',
+                    headers: { 'content-type': 'application/json' }
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao deletar');
+
+                mostrarMensagem('✓ Evento deletado com sucesso!', 'success');
+                document.getElementById('confirmDeleteModal').style.display = 'none';
+                carregarEventos();
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        });
+
+        function sair() {
+            fetch('/api/logout', { method: 'POST' }).then(() => {
+                window.location.href = '/index.html';
+            });
+        }
+    </script>
+</body>
+</html>

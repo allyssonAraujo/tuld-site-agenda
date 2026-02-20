@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Agendamentos - T.U.L.D.</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="/img/logremov.jpg" alt="Logo Terreiro" style="height:56px;vertical-align:middle;margin-right:10px;"> <h1 style="display:inline-block;vertical-align:middle;">T.U.L.D.</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/dashboard.html" class="nav-link">Dashboard</a>
+                <a href="/meus-agendamentos.html" class="nav-link active">Meus Agendamentos</a>
+                <a href="/editar-perfil.html" class="nav-link">Perfil</a>
+                <button id="btnSair" class="btn btn-secondary">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <div class="container">
+            <section class="card terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-header">
+                    <h2>📋 Meus Agendamentos</h2>
+                </div>
+
+                <!-- Abas de Filtro -->
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="todos">Todos</button>
+                    <button class="filter-btn" data-filter="confirmado">Confirmados</button>
+                    <button class="filter-btn" data-filter="presente">Presentes</button>
+                    <button class="filter-btn" data-filter="ausente">Ausências</button>
+                    <button class="filter-btn" data-filter="cancelado">Cancelados</button>
+                </div>
+
+                <!-- Lista de Agendamentos -->
+                <div id="agendamentosList" class="agendamentos-list">
+                    <!-- Carregado via JavaScript -->
+                </div>
+
+                <div id="nenhumAgendamento" class="alert alert-info" style="display: none;">
+                    Você ainda não possui agendamentos.
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal de Detalhes -->
+    <div id="detalhesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Detalhes do Agendamento</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="detalhesContent">
+                <!-- Preenchido dinamicamente -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-action="close">Fechar</button>
+                <button class="btn btn-danger" id="btnCancelarAgendamento" style="display: none;">Cancelar Agendamento</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        let agendamentosGlobal = [];
+        let filtroAtivo = 'todos';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarAgendamentos();
+            
+            // Listeners das abas
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    filtroAtivo = e.target.dataset.filter;
+                    renderizarAgendamentos();
+                });
+            });
+        });
+
+        async function carregarAgendamentos() {
+            try {
+                const response = await fetch('/api/dashboard/meus-agendamentos');
+                if (!response.ok) throw new Error('Erro ao carregar agendamentos');
+                
+                const data = await response.json();
+                agendamentosGlobal = data.agendamentos;
+                renderizarAgendamentos();
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('nenhumAgendamento').style.display = 'block';
+            }
+        }
+
+        function renderizarAgendamentos() {
+            const container = document.getElementById('agendamentosList');
+            container.innerHTML = '';
+            
+            let agendamentos = agendamentosGlobal;
+            
+            if (filtroAtivo !== 'todos') {
+                agendamentos = agendamentos.filter(a => a.status === filtroAtivo);
+            }
+            
+            if (agendamentos.length === 0) {
+                document.getElementById('nenhumAgendamento').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('nenhumAgendamento').style.display = 'none';
+            
+            agendamentos.forEach(agendamento => {
+                const card = document.createElement('div');
+                card.className = 'agendamento-card ' + agendamento.status;
+                
+                const dataEvento = new Date(agendamento.data_evento);
+                const statusBadge = {
+                    'confirmado': '<span class="badge badge-primary">Confirmado</span>',
+                    'presente': '<span class="badge badge-success">Presente</span>',
+                    'ausente': '<span class="badge badge-danger">Ausente</span>',
+                    'cancelado': '<span class="badge badge-secondary">Cancelado</span>'
+                }[agendamento.status];
+                
+                card.innerHTML = `
+                    <div class="agendamento-header">
+                        <h3>${agendamento.titulo}</h3>
+                        ${statusBadge}
+                    </div>
+                    <div class="agendamento-body">
+                        <p><strong>📅 Data:</strong> ${dataEvento.toLocaleDateString('pt-BR')}</p>
+                        <p><strong>🕐 Horário:</strong> ${agendamento.hora_evento}</p>
+                        <p><strong>📍 Local:</strong> ${agendamento.local}</p>
+                        <p><strong>🚪 Portão Abre:</strong> ${agendamento.abertura_portao}</p>
+                    </div>
+                    <div class="agendamento-actions">
+                        <button class="btn btn-small btn-info" onclick="mostrarDetalhes(${agendamento.id})">Detalhes</button>
+                        ${agendamento.status === 'confirmado' ? `<button class="btn btn-small btn-danger" onclick="abrirCancelamento(${agendamento.id})">Cancelar</button>` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function mostrarDetalhes(agendamentoId) {
+            const agendamento = agendamentosGlobal.find(a => a.id === agendamentoId);
+            if (!agendamento) return;
+            
+            const modal = document.getElementById('detalhesModal');
+            const content = document.getElementById('detalhesContent');
+            
+            const dataEvento = new Date(agendamento.data_evento);
+            const agora = new Date();
+            
+            content.innerHTML = `
+                <h3>${agendamento.titulo}</h3>
+                <div class="mt-3">
+                    <p><strong>Data:</strong> ${dataEvento.toLocaleDateString('pt-BR')}</p>
+                    <p><strong>Horário:</strong> ${agendamento.hora_evento}</p>
+                    <p><strong>Local:</strong> ${agendamento.local}</p>
+                    <p><strong>Portão Abre:</strong> ${agendamento.abertura_portao}</p>
+                    <p><strong>Status:</strong> ${agendamento.status}</p>
+                    <p><strong>Data do Agendamento:</strong> ${new Date(agendamento.data_agendamento).toLocaleDateString('pt-BR')}</p>
+                </div>
+            `;
+            
+            const btnCancelar = document.getElementById('btnCancelarAgendamento');
+            
+            // Mostrar botão cancelar apenas se puder (24h antes)
+            const horasRestantes = (dataEvento - agora) / (1000 * 60 * 60);
+            
+            if (agendamento.status === 'confirmado' && horasRestantes >= 24) {
+                btnCancelar.style.display = 'block';
+                btnCancelar.onclick = () => cancelarAgendamento(agendamentoId);
+            } else {
+                btnCancelar.style.display = 'none';
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        function abrirCancelamento(agendamentoId) {
+            mostrarDetalhes(agendamentoId);
+        }
+
+        async function cancelarAgendamento(agendamentoId) {
+            if (!confirm('Deseja cancelar este agendamento?')) return;
+            
+            try {
+                const response = await fetch('/api/agendamento/cancelar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agendamento_id: agendamentoId })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro ao cancelar');
+                }
+                
+                mostrarMensagem('Agendamento cancelado com sucesso!', 'success');
+                document.getElementById('detalhesModal').style.display = 'none';
+                carregarAgendamentos();
+                
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

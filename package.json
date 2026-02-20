@@ -1,0 +1,33 @@
+{
+  "name": "tuld-agendamento",
+  "version": "2.0.0",
+  "description": "Sistema profissional de agendamento T.U.L.D. - Node.js Edition",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "agendamento",
+    "eventos",
+    "nodejs",
+    "express"
+  ],
+  "author": "T.U.L.D.",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "bcryptjs": "^2.4.3",
+    "sql.js": "^1.8.0",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

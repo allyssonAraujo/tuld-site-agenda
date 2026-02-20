@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Usuários - T.U.L.D. Admin</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        @media print {
+            .no-print { display: none; }
+            .navbar, .card-header, button { display: none !important; }
+            body { background: white; }
+        }
+        
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .user-table th, .user-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .user-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        .user-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .status-ativo {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        .status-bloqueado {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .stat-badge {
+            display: inline-block;
+            margin-right: 8px;
+            padding: 3px 8px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+        
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar no-print">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="/img/logremov.jpg" alt="Logo Terreiro" style="height:56px;vertical-align:middle;margin-right:10px;"> <h1 style="display:inline-block;vertical-align:middle;">T.U.L.D. - Admin</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/admin-eventos.html" class="nav-link">← Voltar a Eventos</a>
+                <button id="btnSair" class="btn btn-secondary">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <section class="card mb-4 terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-content">
+                    <h2>📊 Relatório de Usuários</h2>
+                    <p class="text-muted">Lista completa de usuários com histórico de agendamentos. Você pode imprimir ou exportar em CSV.</p>
+                </div>
+            </section>
+
+            <!-- Filtros e Ações -->
+            <section class="card mb-4 no-print terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="filter-section">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <label for="filterStatus" style="margin-bottom: 0;">
+                            Filtrar por status:
+                            <select id="filterStatus" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ccc;">
+                                <option value="">Todos</option>
+                                <option value="ativo">Ativo</option>
+                                <option value="bloqueado">Bloqueado</option>
+                            </select>
+                        </label>
+                        
+                        <label for="filterEventoPresence" style="margin-bottom: 0; margin-left: auto;">
+                            Evento:
+                            <select id="filterEventoPresence" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ccc;">
+                                <option value="">Todos eventos</option>
+                            </select>
+                        </label>
+                        <button id="btnDownloadPresencePDF" class="btn btn-primary">
+                            📥 Baixar Lista de Presença (PDF)
+                        </button>
+                        <button onclick="window.print()" class="btn btn-primary">
+                            🖨️ Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Estatísticas Resumidas -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 15px 0;">
+                    <div style="text-align: center; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #d22219;" id="totalUsers">0</p>
+                        <p style="margin: 5px 0 0 0; color: #555;">Total de Usuários</p>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #e8f5e9; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #388e3c;" id="totalAtivos">0</p>
+                        <p style="margin: 5px 0 0 0; color: #555;">Usuários Ativos</p>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #ffebee; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #d32f2f;" id="totalBloqueados">0</p>
+                        <p style="margin: 5px 0 0 0; color: #555;">Bloqueados</p>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #fff3e0; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #f57c00;" id="totalAgendamentos">0</p>
+                        <p style="margin: 5px 0 0 0; color: #555;">Total Agendamentos</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabela de Usuários -->
+            <section class="card terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-content">
+                    <div style="overflow-x: auto;">
+                        <table class="user-table" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Telefone</th>
+                                    <th>Status</th>
+                                    <th>Data Cadastro</th>
+                                    <th style="text-align: center;">Agendamentos</th>
+                                    <th style="text-align: center;">Presenças</th>
+                                    <th style="text-align: center;">Ausências</th>
+                                    <th style="text-align: center;">Confirmados</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 30px;">Carregando usuários...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="nenhunUsuario" class="alert alert-info" style="display: none; text-align: center; margin-top: 20px;">
+                        Nenhum usuário encontrado com os filtros aplicados.
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <!-- jsPDF + autoTable (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        let usuariosData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarUsuarios();
+            document.getElementById('btnSair').addEventListener('click', sair);
+            document.getElementById('btnDownloadPresencePDF').addEventListener('click', downloadPresencePDF);
+            document.getElementById('filterStatus').addEventListener('change', filtrarUsuarios);
+            populateEventoSelect();
+        });
+
+        async function carregarUsuarios() {
+            try {
+                const res = await fetch('/api/admin/relatorio/usuarios');
+                if (!res.ok) throw new Error('Erro ao carregar usuários');
+                
+                const data = await res.json();
+                usuariosData = data.usuarios || [];
+                
+                renderizarTabela(usuariosData);
+                atualizarEstatisticas(usuariosData);
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem('Erro ao carregar usuários', 'error');
+            }
+        }
+
+        function renderizarTabela(usuarios) {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            if (usuarios.length === 0) {
+                document.getElementById('nenhunUsuario').style.display = 'block';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Nenhum usuário encontrado.</td></tr>';
+                return;
+            }
+
+            document.getElementById('nenhunUsuario').style.display = 'none';
+
+            usuarios.forEach(user => {
+                const dataCadastro = new Date(user.data_cadastro);
+                const statusClass = user.status === 'ativo' ? 'status-ativo' : 'status-bloqueado';
+                const statusText = user.status === 'ativo' ? '✅ Ativo' : '❌ Bloqueado';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${user.nome}</strong></td>
+                    <td>${user.email}</td>
+                    <td>${user.telefone || '-'}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>${dataCadastro.toLocaleDateString('pt-BR')}</td>
+                    <td style="text-align: center;"><strong>${user.total_agendamentos || 0}</strong></td>
+                    <td style="text-align: center; color: #4caf50;"><strong>${user.presencas || 0}</strong></td>
+                    <td style="text-align: center; color: #f44336;"><strong>${user.ausencias || 0}</strong></td>
+                    <td style="text-align: center;"><strong>${user.confirmados || 0}</strong></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function atualizarEstatisticas(usuarios) {
+            const total = usuarios.length;
+            const ativos = usuarios.filter(u => u.status === 'ativo').length;
+            const bloqueados = usuarios.filter(u => u.status === 'bloqueado').length;
+            const totalAgendamentos = usuarios.reduce((sum, u) => sum + (u.total_agendamentos || 0), 0);
+
+            document.getElementById('totalUsers').textContent = total;
+            document.getElementById('totalAtivos').textContent = ativos;
+            document.getElementById('totalBloqueados').textContent = bloqueados;
+            document.getElementById('totalAgendamentos').textContent = totalAgendamentos;
+        }
+
+        function filtrarUsuarios() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            let filtrados = usuariosData;
+
+            if (statusFilter) {
+                filtrados = usuariosData.filter(u => u.status === statusFilter);
+            }
+
+            renderizarTabela(filtrados);
+            atualizarEstatisticas(filtrados);
+        }
+
+        function downloadCSV() {
+            if (usuariosData.length === 0) {
+                mostrarMensagem('Nenhum usuário para exportar', 'info');
+                return;
+            }
+
+            const headers = ['Nome', 'Email', 'Telefone', 'Status', 'Data Cadastro', 'Total Agendamentos', 'Presenças', 'Ausências', 'Confirmados'];
+            const rows = usuariosData.map(u => [
+                u.nome,
+                u.email,
+                u.telefone || '',
+                u.status,
+                new Date(u.data_cadastro).toLocaleDateString('pt-BR'),
+                u.total_agendamentos || 0,
+                u.presencas || 0,
+                u.ausencias || 0,
+                u.confirmados || 0
+            ]);
+
+            const csv = [];
+            csv.push(headers.map(h => `"${h}"`).join(','));
+            rows.forEach(row => {
+                csv.push(row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','));
+            });
+
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio_usuarios_${Date.now()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+
+            mostrarMensagem('Relatório exportado com sucesso!', 'success');
+        }
+
+        // formata data ISO para dd/mm/aaaa
+        function formatDate(iso) {
+            try {
+                const d = new Date(iso);
+                return d.toLocaleDateString('pt-BR');
+            } catch (e) {
+                return iso;
+            }
+        }
+
+        async function populateEventoSelect() {
+            try {
+                const res = await fetch('/api/dashboard/eventos', { credentials: 'same-origin' });
+                if (!res.ok) throw new Error('Falha ao obter eventos');
+                const data = await res.json();
+                const eventos = data.eventos || [];
+                const sel = document.getElementById('filterEventoPresence');
+                sel.innerHTML = '';
+                // Adiciona opção "Todos" como default
+                const optTodos = document.createElement('option');
+                optTodos.value = '';
+                optTodos.textContent = 'Todos';
+                sel.appendChild(optTodos);
+                eventos.forEach(ev => {
+                    const opt = document.createElement('option');
+                    opt.value = ev.id;
+                    opt.textContent = `${ev.titulo} (${formatDate(ev.data_evento)})`;
+                    opt.dataset.title = ev.titulo;
+                    sel.appendChild(opt);
+                });
+                sel.value = '';
+            } catch (err) {
+                console.error('Erro ao popular eventos:', err);
+            }
+        }
+
+        async function downloadPresenceCSV() {
+            const eventoId = document.getElementById('filterEventoPresence').value;
+            if (!eventoId || eventoId === 'all') {
+                mostrarMensagem('Selecione um evento específico antes de gerar a lista (ou escolha o evento na lista).', 'info');
+                return;
+            }
+            const url = `/api/admin/relatorio/presencas?evento_id=${encodeURIComponent(eventoId)}`;
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Falha ao gerar lista de presenças');
+                const data = await res.json();
+                const rows = data.presencas || [];
+                if (rows.length === 0) {
+                    mostrarMensagem('Nenhuma presença encontrada para os filtros selecionados', 'info');
+                    return;
+                }
+                const csv = [];
+                csv.push(['Nome', 'Título do Evento', 'Data do Evento', 'Senha', 'Presença'].map(h => `"${h}"`).join(','));
+                rows.forEach(r => {
+                    const line = [
+                        `"${(r.nome||'').replace(/"/g,'""')}"`,
+                        `"${(r.titulo_evento||'').replace(/"/g,'""')}"`,
+                        `"${formatDate(r.data_evento)}"`,
+                        `"${(r.senha||'').toString().replace(/"/g,'""')}"`,
+                        '""'
+                    ].join(',');
+                    csv.push(line);
+                });
+
+                const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const urlBlob = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = urlBlob;
+                a.download = `lista_presenca_${Date.now()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(urlBlob);
+                mostrarMensagem('Lista de presença exportada com sucesso!', 'success');
+            } catch (err) {
+                console.error(err);
+                mostrarMensagem('Erro ao baixar lista de presença', 'error');
+            }
+        }
+
+        // Gera e baixa PDF da lista de presença com linhas/colunas
+        async function downloadPresencePDF() {
+            const eventoId = document.getElementById('filterEventoPresence').value;
+            const url = eventoId ? `/api/admin/relatorio/presencas?evento_id=${encodeURIComponent(eventoId)}` : '/api/admin/relatorio/presencas';
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Falha ao gerar lista de presenças');
+                const data = await res.json();
+                const rows = data.presencas || [];
+                if (rows.length === 0) {
+                    mostrarMensagem('Nenhuma presença encontrada para os filtros selecionados', 'info');
+                    return;
+                }
+
+                const headers = ['Nome', 'Título do Evento', 'Data do Evento', 'Senha', 'Presença'];
+                const body = rows.map(r => [r.nome || '', r.titulo_evento || '', formatDate(r.data_evento), (r.senha||''), '']);
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'pt', 'a4');
+                doc.setFontSize(14);
+                // determine event title for header
+                const sel = document.getElementById('filterEventoPresence');
+                let eventoTitle = 'Todos Eventos';
+                if (eventoId) {
+                    const opt = sel.selectedOptions && sel.selectedOptions[0];
+                    eventoTitle = (opt && opt.dataset && opt.dataset.title) ? opt.dataset.title : (rows[0] && rows[0].titulo_evento) || eventoTitle;
+                }
+                const headerTitle = `Lista de Presença - T.U.L.D - ${eventoTitle}`;
+                doc.text(headerTitle, 40, 30);
+
+                doc.autoTable({
+                    head: [headers],
+                    body: body,
+                    startY: 50,
+                    theme: 'grid',
+                    styles: { fontSize: 10, cellPadding: 6 },
+                    headStyles: { fillColor: [240,240,240], textColor: 20 },
+                    columnStyles: {
+                        0: { cellWidth: 140 },
+                        1: { cellWidth: 160 },
+                        2: { cellWidth: 80 },
+                        3: { cellWidth: 60 },
+                        4: { cellWidth: 110 }
+                    }
+                });
+
+                doc.save(`lista_presenca_${Date.now()}.pdf`);
+                mostrarMensagem('PDF de presença gerado com sucesso!', 'success');
+            } catch (err) {
+                console.error(err);
+                mostrarMensagem('Erro ao gerar PDF de presença', 'error');
+            }
+        }
+
+        function sair() {
+            fetch('/api/logout', { method: 'POST' }).then(() => {
+                window.location.href = '/index.html';
+            });
+        }
+    </script>
+</body>
+</html>

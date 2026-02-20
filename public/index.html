@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T.U.L.D. - Sistema de Agendamento</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-auth-white bg-light">
+    <div class="auth-container">
+        <!-- Logo e Título -->
+        <div class="auth-header">
+            <div style="display:flex;align-items:center;gap:12px;justify-content:center;">
+                <img src="/img/logremov.jpg" alt="Logo Terreiro" style="height:64px;"> 
+                <h1 class="app-title" style="margin:0;">T.U.L.D.</h1>
+            </div>
+            <p class="app-subtitle"><strong>Sistema de Agendamento</strong></p>
+        </div>
+
+        <!-- Abas de Login/Cadastro -->
+        <div class="auth-tabs">
+            <button class="tab-btn active" data-tab="login">Acessar</button>
+            <button class="tab-btn" data-tab="cadastro">Cadastro</button>
+        </div>
+
+        <!-- Formulário de Login -->
+        <form id="loginForm" class="auth-form active" data-form="login">
+            <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" name="email" required placeholder="seu@email.com">
+                <!-- Hint removed for security -->
+            </div>
+
+            <div class="form-group">
+                <label for="loginSenha">Senha</label>
+                <div class="password-input">
+                    <input type="password" id="loginSenha" name="senha" required placeholder="Sua senha">
+                    <button type="button" class="toggle-password" data-input="loginSenha">
+                        <span class="eye-icon">👁️</span>
+                    </button>
+                </div>
+                <!-- Hint removed for security -->
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Acessar</button>
+
+            <button type="button" id="btnEsqueceuSenha" class="link-forgot-password">
+                Esqueceu a senha?
+            </button>
+
+            <div class="form-message" id="loginMessage"></div>
+        </form>
+
+        <!-- Formulário de Cadastro -->
+        <form id="cadastroForm" class="auth-form" data-form="cadastro">
+            <div class="form-group">
+                <label for="cadastroNome">Nome Completo</label>
+                <input type="text" id="cadastroNome" name="nome" required placeholder="Seu nome completo">
+            </div>
+
+            <div class="form-group">
+                <label for="cadastroEmail">Email</label>
+                <input type="email" id="cadastroEmail" name="email" required placeholder="seu@email.com">
+            </div>
+
+            <div class="form-group">
+                <label for="cadastroTelefone">Telefone (Opcional)</label>
+                <input type="tel" id="cadastroTelefone" name="telefone" placeholder="(11) 99999-9999">
+            </div>
+
+            <div class="form-group">
+                <label for="cadastroSenha">Senha</label>
+                <div class="password-input">
+                    <input type="password" id="cadastroSenha" name="senha" required placeholder="Mínimo 8 caracteres">
+                    <button type="button" class="toggle-password" data-input="cadastroSenha">
+                        <span class="eye-icon">👁️</span>
+                    </button>
+                </div>
+                <small class="form-hint password-strength">
+                    Requisitos: 8+ caracteres • Letras • Números • Caracteres especiais (!@#$%^&*)
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="cadastroConfirmar">Confirmar Senha</label>
+                <div class="password-input">
+                    <input type="password" id="cadastroConfirmar" name="confirmar_senha" required placeholder="Confirme sua senha">
+                    <button type="button" class="toggle-password" data-input="cadastroConfirmar">
+                        <span class="eye-icon">👁️</span>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Criar Conta</button>
+
+            <div class="form-message" id="cadastroMessage"></div>
+        </form>
+
+        <p style="margin-top:1.5rem;font-size:0.8rem;color:#000000;text-align:center;">
+            <strong>Direitos © T.U.L.D.</strong>
+        </p>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
