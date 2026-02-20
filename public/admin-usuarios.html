@@ -142,8 +142,19 @@
                 </div>
             </section>
 
+            <!-- Abas: Usuários e Presença -->
+            <section class="card mb-4 no-print terreiro">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-content" style="padding-bottom: 1rem;">
+                    <div class="profile-tabs" style="margin-bottom: 0;">
+                        <button class="profile-tab-btn active" data-tab="usuarios">👥 Usuários</button>
+                        <button class="profile-tab-btn" data-tab="presenca">🧾 Presença</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Tabela de Usuários -->
-            <section class="card terreiro">
+            <section class="card terreiro profile-tab-content active" data-content="usuarios">
                 <div class="barra-verde" aria-hidden="true"></div>
                 <div class="card-content">
                     <div style="overflow-x: auto;">
@@ -176,7 +187,7 @@
             </section>
 
             <!-- Lista de Presença na Tela -->
-            <section class="card terreiro mt-4">
+            <section class="card terreiro mt-4 profile-tab-content" data-content="presenca">
                 <div class="barra-verde" aria-hidden="true"></div>
                 <div class="card-content">
                     <h3>🧾 Lista de Presença (Visualização)</h3>
@@ -217,7 +228,11 @@
         let usuariosData = [];
         let presencasData = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isAdmin = await verificarAcessoAdmin();
+            if (!isAdmin) return;
+
+            configurarAbasRelatorio();
             carregarUsuarios();
             document.getElementById('btnSair').addEventListener('click', sair);
             document.getElementById('btnDownloadPresencePDF').addEventListener('click', downloadPresencePDF);
@@ -225,6 +240,48 @@
             populateEventoSelect();
             carregarListaPresenca();
         });
+
+        function configurarAbasRelatorio() {
+            const tabButtons = document.querySelectorAll('.profile-tab-btn[data-tab]');
+            const contents = document.querySelectorAll('.profile-tab-content[data-content]');
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tab = btn.dataset.tab;
+
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+
+                    btn.classList.add('active');
+                    const section = document.querySelector(`.profile-tab-content[data-content="${tab}"]`);
+                    if (section) section.classList.add('active');
+                });
+            });
+        }
+
+        async function verificarAcessoAdmin() {
+            try {
+                const res = await fetch('/api/usuario', { credentials: 'same-origin' });
+                if (!res.ok) {
+                    window.location.href = '/index.html';
+                    return false;
+                }
+
+                const usuario = await res.json();
+                if (!usuario || usuario.id !== 1) {
+                    mostrarMensagem('Acesso permitido apenas para administrador.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard.html';
+                    }, 1200);
+                    return false;
+                }
+
+                return true;
+            } catch (error) {
+                window.location.href = '/index.html';
+                return false;
+            }
+        }
 
         async function carregarUsuarios() {
             try {

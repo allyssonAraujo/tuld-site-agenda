@@ -1,24 +1,27 @@
 /**
- * Configuração do Banco de Dados - usando sql.js
+ * Configuração do Banco de Dados - PostgreSQL
  */
 
-const { getDb } = require('./helpers');
+const { getPool } = require('./helpers');
 
 async function obterBanco() {
-    return await getDb();
+    return getPool();
 }
 
-function inicializarBanco() {
-    // Inicializa o banco carregando/criando o arquivo e executando schema via helpers
-    getDb().then(() => {
-        console.log('✓ Banco de dados inicializado');
-    }).catch((err) => {
-        console.error('Erro ao inicializar banco:', err);
-    });
+async function inicializarBanco() {
+    try {
+        const pool = getPool();
+        // Teste de conexão
+        const result = await pool.query('SELECT NOW()');
+        console.log('✓ Banco de dados PostgreSQL conectado:', result.rows[0].now);
+    } catch (err) {
+        console.error('Erro ao conectar banco:', err.message);
+        throw err;
+    }
 }
 
 function fecharBanco() {
-    // sql.js mantém estado em memória; nossas helpers persistem após operações.
+    // Pool vai lidar com desconexão ao encerrar o processo
 }
 
 module.exports = {

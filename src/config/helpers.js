@@ -1,133 +1,97 @@
 /**
- * Database Helpers - Wrapper para sql.js (WASM SQLite)
+ * Database Helpers - PostgreSQL via pg
  */
 
-const initSqlJs = require('sql.js');
-const path = require('path');
-const fs = require('fs');
+const { Pool } = require('pg');
 
-const dbPath = path.join(__dirname, '../../database/tuld.db');
-const schemaPath = path.join(__dirname, '../../database/schema.sql');
+let pool = null;
 
-let SQL = null;
-let dbInstance = null; // sql.js Database
+function getPool() {
+    if (!pool) {
+        // Render fornece DATABASE_URL automaticamente
+        const connectionString = process.env.DATABASE_URL || 
+            'postgresql://user:password@localhost:5432/tuld';
 
-async function ensureSql() {
-    if (!SQL) SQL = await initSqlJs();
-}
+        pool = new Pool({
+            connectionString,
+            // Para Render, pode precisar de ssl
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        });
 
-async function getDb() {
-    await ensureSql();
-
-    if (dbInstance) return dbInstance;
-
-    if (fs.existsSync(dbPath)) {
-        const filebuffer = fs.readFileSync(dbPath);
-        dbInstance = new SQL.Database(new Uint8Array(filebuffer));
-    } else {
-        dbInstance = new SQL.Database();
-        if (fs.existsSync(schemaPath)) {
-            const schema = fs.readFileSync(schemaPath, 'utf8');
-            if (schema && schema.trim()) dbInstance.run(schema);
-        }
-        persistDb();
+        pool.on('error', (err) => {
+            console.error('Erro no pool PostgreSQL:', err);
+        });
     }
-
-    return dbInstance;
-}
-
-function persistDb() {
-    if (!dbInstance) return;
-    const data = dbInstance.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
+    return pool;
 }
 
 async function run(sql, params = []) {
-    const db = await getDb();
-
+    const pool = getPool();
     try {
-        const stmt = db.prepare(sql);
-        if (params && params.length) stmt.bind(params);
-        stmt.run();
-        stmt.free();
-
-        // obter lastID via função SQLite
-        let lastID = null;
-        try {
-            const res = db.exec('SELECT last_insert_rowid() AS id');
-            if (res && res[0] && res[0].values && res[0].values[0]) lastID = res[0].values[0][0];
-        } catch (e) {
-            lastID = null;
+        // Para INSERT, adicionar RETURNING id se não tiver
+        let finalSql = sql;
+        if (sql.trim().toUpperCase().startsWith('INSERT') && !sql.toUpperCase().includes('RETURNING')) {
+            finalSql = sql.trim();
+            if (!finalSql.endsWith(';')) finalSql += ';';
+            finalSql = finalSql.slice(0, -1) + ' RETURNING id;';
         }
 
-        const changes = db.getRowsModified ? db.getRowsModified() : null;
-        persistDb();
-        return { lastID, changes };
+        const result = await pool.query(finalSql, params);
+        return {
+            lastID: result.rows[0]?.id || null,
+            changes: result.rowCount
+        };
     } catch (err) {
         throw err;
     }
 }
 
 async function get(sql, params = []) {
-    const db = await getDb();
-
-    const stmt = db.prepare(sql);
-    if (params && params.length) stmt.bind(params);
-    let row = null;
-    if (stmt.step()) {
-        row = stmt.getAsObject();
-    }
-    stmt.free();
-    return row || undefined;
+    const pool = getPool();
+    const result = await pool.query(sql, params);
+    return result.rows[0] || undefined;
 }
 
 async function all(sql, params = []) {
-    const db = await getDb();
-
-    const stmt = db.prepare(sql);
-    if (params && params.length) stmt.bind(params);
-    const rows = [];
-    while (stmt.step()) {
-        rows.push(stmt.getAsObject());
-    }
-    stmt.free();
-    return rows;
+    const pool = getPool();
+    const result = await pool.query(sql, params);
+    return result.rows;
 }
 
 async function transaction(queries) {
-    const db = await getDb();
-
+    const client = await getPool().connect();
     try {
-        db.run('BEGIN TRANSACTION');
+        await client.query('BEGIN');
         const results = [];
-        for (let i = 0; i < queries.length; i++) {
-            const q = queries[i];
-            const stmt = db.prepare(q.sql);
-            if (q.params && q.params.length) stmt.bind(q.params);
-            stmt.run();
-            stmt.free();
+        
+        for (const q of queries) {
+            // Para INSERT, adicionar RETURNING id se não tiver
+            let finalSql = q.sql;
+            if (q.sql.trim().toUpperCase().startsWith('INSERT') && !q.sql.toUpperCase().includes('RETURNING')) {
+                finalSql = q.sql.trim();
+                if (!finalSql.endsWith(';')) finalSql += ';';
+                finalSql = finalSql.slice(0, -1) + ' RETURNING id;';
+            }
 
-            let lastID = null;
-            try {
-                const res = db.exec('SELECT last_insert_rowid() AS id');
-                if (res && res[0] && res[0].values && res[0].values[0]) lastID = res[0].values[0][0];
-            } catch (e) {}
-
-            const changes = db.getRowsModified ? db.getRowsModified() : null;
-            results.push({ lastID, changes });
+            const result = await client.query(finalSql, q.params || []);
+            results.push({
+                lastID: result.rows[0]?.id || null,
+                changes: result.rowCount
+            });
         }
-        db.run('COMMIT');
-        persistDb();
+        
+        await client.query('COMMIT');
         return results;
     } catch (err) {
-        try { db.run('ROLLBACK'); } catch (e) {}
+        await client.query('ROLLBACK');
         throw err;
+    } finally {
+        client.release();
     }
 }
 
 module.exports = {
-    getDb,
+    getPool,
     run,
     get,
     all,

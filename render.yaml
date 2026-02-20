@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: tuld-agendamento
+    env: node
+    plan: free
+    buildCommand: npm install && npm run init-db
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
