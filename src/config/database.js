@@ -2,7 +2,7 @@
  * Configuração do Banco de Dados - PostgreSQL
  */
 
-const { getPool } = require('./helpers');
+const { getPool, initializeDatabase } = require('./helpers');
 
 async function obterBanco() {
     return getPool();
@@ -10,8 +10,11 @@ async function obterBanco() {
 
 async function inicializarBanco() {
     try {
-        const pool = getPool();
+        // Inicializar schema se necessário
+        await initializeDatabase();
+        
         // Teste de conexão
+        const pool = getPool();
         const result = await pool.query('SELECT NOW()');
         console.log('✓ Banco de dados PostgreSQL conectado:', result.rows[0].now);
     } catch (err) {

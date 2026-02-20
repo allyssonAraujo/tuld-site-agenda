@@ -3,8 +3,11 @@
  */
 
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
 
 let pool = null;
+let dbInitialized = false;
 
 function getPool() {
     if (!pool) {
@@ -23,6 +26,58 @@ function getPool() {
         });
     }
     return pool;
+}
+
+/**
+ * Inicializar banco de dados (executar schema se não existir)
+ */
+async function initializeDatabase() {
+    if (dbInitialized) return;
+
+    const pool = getPool();
+    
+    try {
+        // Verificar se tabela usuarios existe
+        const result = await pool.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'usuarios'
+            );
+        `);
+
+        if (result.rows[0].exists) {
+            console.log('✓ Banco de dados já inicializado');
+            dbInitialized = true;
+            return;
+        }
+
+        // Executar schema
+        console.log('📝 Inicializando banco de dados...');
+        const schemaPath = path.join(__dirname, '../../database/schema-postgres.sql');
+        const schema = fs.readFileSync(schemaPath, 'utf8');
+
+        const statements = schema
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        for (const stmt of statements) {
+            try {
+                await pool.query(stmt);
+            } catch (err) {
+                // Erros como "already exists" são ignorados
+                if (err.code !== '42P07' && err.code !== '42701') {
+                    throw err;
+                }
+            }
+        }
+
+        console.log('✓ Banco de dados inicializado com sucesso');
+        dbInitialized = true;
+    } catch (err) {
+        console.error('❌ Erro ao inicializar banco:', err.message);
+        throw err;
+    }
 }
 
 async function run(sql, params = []) {
@@ -92,6 +147,7 @@ async function transaction(queries) {
 
 module.exports = {
     getPool,
+    initializeDatabase,
     run,
     get,
     all,
