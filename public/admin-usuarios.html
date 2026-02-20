@@ -228,6 +228,11 @@
         let usuariosData = [];
         let presencasData = [];
 
+        function toInt(value) {
+            const parsed = Number.parseInt(value, 10);
+            return Number.isNaN(parsed) ? 0 : parsed;
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             const isAdmin = await verificarAcessoAdmin();
             if (!isAdmin) return;
@@ -316,6 +321,10 @@
                 const dataCadastro = new Date(user.data_cadastro);
                 const statusClass = user.status === 'ativo' ? 'status-ativo' : 'status-bloqueado';
                 const statusText = user.status === 'ativo' ? '✅ Ativo' : '❌ Bloqueado';
+                const totalAgendamentos = toInt(user.total_agendamentos);
+                const presencas = toInt(user.presencas);
+                const ausencias = toInt(user.ausencias);
+                const confirmados = toInt(user.confirmados);
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -324,10 +333,10 @@
                     <td>${user.telefone || '-'}</td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                     <td>${dataCadastro.toLocaleDateString('pt-BR')}</td>
-                    <td style="text-align: center;"><strong>${user.total_agendamentos || 0}</strong></td>
-                    <td style="text-align: center; color: #4caf50;"><strong>${user.presencas || 0}</strong></td>
-                    <td style="text-align: center; color: #f44336;"><strong>${user.ausencias || 0}</strong></td>
-                    <td style="text-align: center;"><strong>${user.confirmados || 0}</strong></td>
+                    <td style="text-align: center;"><strong>${totalAgendamentos}</strong></td>
+                    <td style="text-align: center; color: #4caf50;"><strong>${presencas}</strong></td>
+                    <td style="text-align: center; color: #f44336;"><strong>${ausencias}</strong></td>
+                    <td style="text-align: center;"><strong>${confirmados}</strong></td>
                 `;
                 tbody.appendChild(row);
             });
@@ -337,7 +346,7 @@
             const total = usuarios.length;
             const ativos = usuarios.filter(u => u.status === 'ativo').length;
             const bloqueados = usuarios.filter(u => u.status === 'bloqueado').length;
-            const totalAgendamentos = usuarios.reduce((sum, u) => sum + (u.total_agendamentos || 0), 0);
+            const totalAgendamentos = usuarios.reduce((sum, u) => sum + toInt(u.total_agendamentos), 0);
 
             document.getElementById('totalUsers').textContent = total;
             document.getElementById('totalAtivos').textContent = ativos;
@@ -370,10 +379,10 @@
                 u.telefone || '',
                 u.status,
                 new Date(u.data_cadastro).toLocaleDateString('pt-BR'),
-                u.total_agendamentos || 0,
-                u.presencas || 0,
-                u.ausencias || 0,
-                u.confirmados || 0
+                toInt(u.total_agendamentos),
+                toInt(u.presencas),
+                toInt(u.ausencias),
+                toInt(u.confirmados)
             ]);
 
             const csv = [];

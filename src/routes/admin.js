@@ -44,7 +44,7 @@ router.get('/relatorio/agendamentos', verificarSessao, verificarAdmin, async (re
         `;
         const params = [];
         if (eventoId) {
-            sql += ` WHERE e.id = ?`;
+            sql += ` WHERE e.id = $1`;
             params.push(eventoId);
         }
         sql += ` ORDER BY e.data_evento ASC, a.data_agendamento ASC`;
@@ -139,10 +139,10 @@ router.get('/relatorio/usuarios', verificarSessao, verificarAdmin, async (req, r
     try {
         const rows = await all(`
             SELECT DISTINCT u.id, u.nome, u.email, u.telefone, u.status, u.data_cadastro,
-                   COUNT(a.id) as total_agendamentos,
-                   SUM(CASE WHEN a.status = 'presente' THEN 1 ELSE 0 END) as presencas,
-                   SUM(CASE WHEN a.status = 'ausente' THEN 1 ELSE 0 END) as ausencias,
-                   SUM(CASE WHEN a.status = 'confirmado' THEN 1 ELSE 0 END) as confirmados
+                   COUNT(a.id)::int as total_agendamentos,
+                   COALESCE(SUM(CASE WHEN a.status = 'presente' THEN 1 ELSE 0 END), 0)::int as presencas,
+                   COALESCE(SUM(CASE WHEN a.status = 'ausente' THEN 1 ELSE 0 END), 0)::int as ausencias,
+                   COALESCE(SUM(CASE WHEN a.status = 'confirmado' THEN 1 ELSE 0 END), 0)::int as confirmados
             FROM usuarios u
             LEFT JOIN agendamentos a ON u.id = a.usuario_id
             GROUP BY u.id
@@ -171,7 +171,7 @@ router.get('/relatorio/presencas', verificarSessao, verificarAdmin, async (req, 
         `;
         const params = [];
         if (eventoId) {
-            sql += ` WHERE e.id = ?`;
+            sql += ` WHERE e.id = $1`;
             params.push(eventoId);
         }
         sql += ` ORDER BY e.data_evento ASC, u.nome ASC`;

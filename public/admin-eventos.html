@@ -170,6 +170,17 @@
     <script>
         let eventoEmEdicao = null;
 
+        function normalizarDataParaInput(dataValor) {
+            if (!dataValor) return '';
+            const dataString = String(dataValor);
+            return dataString.includes('T') ? dataString.split('T')[0] : dataString.slice(0, 10);
+        }
+
+        function normalizarHoraParaInput(horaValor) {
+            if (!horaValor) return '';
+            return String(horaValor).slice(0, 5);
+        }
+
         // Carregar eventos ao iniciar página
         document.addEventListener('DOMContentLoaded', () => {
             carregarEventos();
@@ -271,19 +282,30 @@
         function abrirEdicaoEvento(evento) {
             eventoEmEdicao = evento;
             document.getElementById('editEvtTitulo').value = evento.titulo;
-            document.getElementById('editEvtData').value = evento.data_evento;
-            document.getElementById('editEvtHora').value = evento.hora_evento;
-            document.getElementById('editEvtLocal').value = evento.local;
-            document.getElementById('editEvtDescricao').value = evento.descricao;
+            document.getElementById('editEvtData').value = normalizarDataParaInput(evento.data_evento);
+            document.getElementById('editEvtHora').value = normalizarHoraParaInput(evento.hora_evento);
+            document.getElementById('editEvtLocal').value = evento.local || '';
+            document.getElementById('editEvtDescricao').value = evento.descricao || '';
             document.getElementById('editEventModal').style.display = 'flex';
         }
 
         document.getElementById('btnConfirmarEdicao').addEventListener('click', async () => {
             try {
+                if (!eventoEmEdicao || !eventoEmEdicao.id) {
+                    throw new Error('Nenhum evento selecionado para edição.');
+                }
+
+                const dataInput = document.getElementById('editEvtData').value;
+                const horaInput = document.getElementById('editEvtHora').value;
+
+                if (!dataInput || !horaInput) {
+                    throw new Error('Data e horário são obrigatórios.');
+                }
+
                 const payload = {
                     titulo: document.getElementById('editEvtTitulo').value,
-                    data_evento: document.getElementById('editEvtData').value,
-                    hora_evento: document.getElementById('editEvtHora').value,
+                    data_evento: dataInput,
+                    hora_evento: `${horaInput}:00`,
                     local: document.getElementById('editEvtLocal').value,
                     descricao: document.getElementById('editEvtDescricao').value
                 };
