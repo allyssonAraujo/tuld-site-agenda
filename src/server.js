@@ -5,12 +5,14 @@
 
 const express = require('express');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 const bodyParser = require('body-parser');
 const path = require('path');
 require('dotenv').config();
 
 // Importar configuração do banco
 const { inicializarBanco } = require('./config/database');
+const { getPool } = require('./config/helpers');
 
 // Importar rotas
 const authRoutes = require('./routes/auth');
@@ -39,6 +41,11 @@ app.use('/img', express.static(path.join(__dirname, '../img')));
 // Configurar sessão
 app.use(session({
     secret: process.env.SESSION_SECRET || 'tuld-secret-key-change-in-production',
+    store: new pgSession({
+        pool: getPool(),
+        tableName: 'user_sessions',
+        createTableIfMissing: true
+    }),
     resave: false,
     saveUninitialized: false,
     proxy: true,
