@@ -150,4 +150,20 @@ router.get('/api/sair', (req, res) => {
     });
 });
 
+/**
+ * GET /api/debug/usuarios - DEBUG: Listar todos os usuários (remover em produção!)
+ */
+router.get('/api/debug/usuarios', async (req, res) => {
+    try {
+        const usuarios = await Usuario.listarTodos();
+        return res.json({ 
+            total: usuarios.length,
+            usuarios: usuarios
+        });
+    } catch (err) {
+        console.error('Erro ao listar usuários:', err);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
