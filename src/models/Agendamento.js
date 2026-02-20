@@ -21,10 +21,20 @@ class Agendamento {
             const temVagas = await Evento.temVagasDisponiveis(eventoId);
             if (!temVagas) return { error: 'Não há mais vagas disponíveis para este evento.' };
 
-            // Inserir agendamento e histórico em transação (sem numero_senha)
+            // Gerar número de senha interno (não exibido para o usuário)
+            const numeroSenha = await this.gerarNumeroSenha(eventoId);
+            const evento = await Evento.buscarPorId(eventoId);
+
+            // Inserir agendamento e histórico em transação
             const queries = [
-                { sql: `INSERT INTO agendamentos (usuario_id, evento_id, status, confirmacao_presenca) VALUES (?, ?, 'confirmado', 'pendente')`, params: [usuarioId, eventoId] },
-                { sql: `INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'agendamento', ?)`, params: [usuarioId, `Agendado para: ${ (await Evento.buscarPorId(eventoId)).titulo }`] }
+                {
+                    sql: `INSERT INTO agendamentos (usuario_id, evento_id, numero_senha, status, confirmacao_presenca) VALUES (?, ?, ?, 'confirmado', 'pendente')`,
+                    params: [usuarioId, eventoId, numeroSenha]
+                },
+                {
+                    sql: `INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'agendamento', ?)`,
+                    params: [usuarioId, `Agendado para: ${evento ? evento.titulo : 'Evento'}`]
+                }
             ];
 
             const results = await transaction(queries);
