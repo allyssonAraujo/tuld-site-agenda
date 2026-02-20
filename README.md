@@ -72,12 +72,9 @@ O servidor iniciará em `http://localhost:3000`
 
 ### 3. Credenciais Padrão
 
-Na primeira execução, o banco é criado automaticamente com um usuário admin:
+Na primeira execução, o banco é criado automaticamente com um usuário admin para acesso inicial.
 
-- **Email:** admin@tuld.com
-- **Senha:** Admin@123
-
-⚠️ **Altere essa senha após o primeiro login!**
+⚠️ **Por segurança, consulte as variáveis de ambiente/configuração local para definir as credenciais e altere a senha no primeiro login.**
 
 ## 📁 Estrutura do Projeto
 
