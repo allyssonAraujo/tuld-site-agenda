@@ -17,8 +17,9 @@ Abra o navegador: `http://localhost:3000`
 
 ## 📝 Credenciais Padrão
 
-**Email:** admin@tuld.com  
-**Senha:** Admin@123
+Use as credenciais definidas no seu ambiente local/configuração.
+
+⚠️ Recomenda-se alterar a senha padrão imediatamente após o primeiro acesso.
 
 ## ✨ Funcionalidades
 

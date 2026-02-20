@@ -21,6 +21,9 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Necessário em ambientes com proxy (ex.: Render) para cookies seguros funcionarem
+app.set('trust proxy', 1);
+
 // Inicializar banco de dados
 inicializarBanco();
 
@@ -38,8 +41,10 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'tuld-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 // 24 horas
     }

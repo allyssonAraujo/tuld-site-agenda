@@ -27,14 +27,14 @@
         <form id="loginForm" class="auth-form active" data-form="login">
             <div class="form-group">
                 <label for="loginEmail">Email</label>
-                <input type="email" id="loginEmail" name="email" required placeholder="seu@email.com">
+                <input type="email" id="loginEmail" name="email" autocomplete="email" required placeholder="seu@email.com">
                 <!-- Hint removed for security -->
             </div>
 
             <div class="form-group">
                 <label for="loginSenha">Senha</label>
                 <div class="password-input">
-                    <input type="password" id="loginSenha" name="senha" required placeholder="Sua senha">
+                    <input type="password" id="loginSenha" name="senha" autocomplete="current-password" required placeholder="Sua senha">
                     <button type="button" class="toggle-password" data-input="loginSenha">
                         <span class="eye-icon">👁️</span>
                     </button>
@@ -55,23 +55,23 @@
         <form id="cadastroForm" class="auth-form" data-form="cadastro">
             <div class="form-group">
                 <label for="cadastroNome">Nome Completo</label>
-                <input type="text" id="cadastroNome" name="nome" required placeholder="Seu nome completo">
+                <input type="text" id="cadastroNome" name="nome" autocomplete="name" required placeholder="Seu nome completo">
             </div>
 
             <div class="form-group">
                 <label for="cadastroEmail">Email</label>
-                <input type="email" id="cadastroEmail" name="email" required placeholder="seu@email.com">
+                <input type="email" id="cadastroEmail" name="email" autocomplete="email" required placeholder="seu@email.com">
             </div>
 
             <div class="form-group">
                 <label for="cadastroTelefone">Telefone (Opcional)</label>
-                <input type="tel" id="cadastroTelefone" name="telefone" placeholder="(11) 99999-9999">
+                <input type="tel" id="cadastroTelefone" name="telefone" autocomplete="tel" placeholder="(11) 99999-9999">
             </div>
 
             <div class="form-group">
                 <label for="cadastroSenha">Senha</label>
                 <div class="password-input">
-                    <input type="password" id="cadastroSenha" name="senha" required placeholder="Mínimo 8 caracteres">
+                    <input type="password" id="cadastroSenha" name="senha" autocomplete="new-password" required placeholder="Mínimo 8 caracteres">
                     <button type="button" class="toggle-password" data-input="cadastroSenha">
                         <span class="eye-icon">👁️</span>
                     </button>
@@ -84,7 +84,7 @@
             <div class="form-group">
                 <label for="cadastroConfirmar">Confirmar Senha</label>
                 <div class="password-input">
-                    <input type="password" id="cadastroConfirmar" name="confirmar_senha" required placeholder="Confirme sua senha">
+                    <input type="password" id="cadastroConfirmar" name="confirmar_senha" autocomplete="new-password" required placeholder="Confirme sua senha">
                     <button type="button" class="toggle-password" data-input="cadastroConfirmar">
                         <span class="eye-icon">👁️</span>
                     </button>

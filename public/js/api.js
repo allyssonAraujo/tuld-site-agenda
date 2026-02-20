@@ -11,6 +11,7 @@ const API = {
         const url = `${this.baseURL}${endpoint}`;
         
         const config = {
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers
@@ -20,7 +21,16 @@ const API = {
         
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
+            const raw = await response.text();
+            let data;
+
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch {
+                data = {
+                    error: raw ? raw.slice(0, 250) : `Resposta inesperada do servidor (${response.status})`
+                };
+            }
             
             return {
                 ok: response.ok,
