@@ -5,8 +5,6 @@
 const express = require('express');
 const router = express.Router();
 const Usuario = require('../models/Usuario');
-const bcrypt = require('bcryptjs');
-const { run } = require('../config/helpers');
 
 /**
  * POST /api/login - Processar login
@@ -150,70 +148,6 @@ router.get('/api/sair', (req, res) => {
         }
         return res.json({ success: true, redirect: '/' });
     });
-});
-
-/**
- * GET /api/debug/usuarios - DEBUG: Listar todos os usuários (remover em produção!)
- */
-router.get('/api/debug/usuarios', async (req, res) => {
-    try {
-        const usuarios = await Usuario.listarTodos();
-        return res.json({ 
-            total: usuarios.length,
-            usuarios: usuarios
-        });
-    } catch (err) {
-        console.error('Erro ao listar usuários:', err);
-        return res.status(500).json({ error: err.message });
-    }
-});
-
-/**
- * POST /api/debug/reset-admin - DEBUG: resetar senha do admin (remover em produção!)
- */
-router.post('/api/debug/reset-admin', async (req, res) => {
-    try {
-        const novaSenha = (req.body && req.body.senha) ? String(req.body.senha) : 'Admin@123';
-        const senhaHash = bcrypt.hashSync(novaSenha, 10);
-
-        await run(
-            `UPDATE usuarios
-             SET senha = $1, status = 'ativo', bloqueado_ate = NULL, faltas_consecutivas = 0
-             WHERE id = 1`,
-            [senhaHash]
-        );
-
-        return res.json({
-            success: true,
-            message: 'Senha do admin resetada com sucesso.',
-            email: 'admin@tuld.com'
-        });
-    } catch (err) {
-        console.error('Erro ao resetar admin:', err);
-        return res.status(500).json({ error: 'Erro ao resetar admin.' });
-    }
-});
-
-router.get('/api/debug/reset-admin', async (req, res) => {
-    try {
-        const senhaHash = bcrypt.hashSync('Admin@123', 10);
-
-        await run(
-            `UPDATE usuarios
-             SET senha = $1, status = 'ativo', bloqueado_ate = NULL, faltas_consecutivas = 0
-             WHERE id = 1`,
-            [senhaHash]
-        );
-
-        return res.json({
-            success: true,
-            message: 'Senha do admin resetada para Admin@123',
-            email: 'admin@tuld.com'
-        });
-    } catch (err) {
-        console.error('Erro ao resetar admin:', err);
-        return res.status(500).json({ error: 'Erro ao resetar admin.' });
-    }
 });
 
 module.exports = router;
