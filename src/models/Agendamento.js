@@ -95,12 +95,32 @@ class Agendamento {
             const agendamento = await this.buscarPorId(agendamentoId);
             if (!agendamento) return { error: 'Agendamento não encontrado.' };
 
-            if (agendamento.usuario_id !== usuarioId && usuarioId !== 1) return { error: 'Você não tem permissão para cancelar este agendamento.' };
+            const usuarioAtualId = Number(usuarioId);
+            const donoAgendamentoId = Number(agendamento.usuario_id);
+
+            if (Number.isNaN(usuarioAtualId) || Number.isNaN(donoAgendamentoId)) {
+                return { error: 'Dados inválidos para cancelamento.' };
+            }
+
+            if (donoAgendamentoId !== usuarioAtualId && usuarioAtualId !== 1) {
+                return { error: 'Você não tem permissão para cancelar este agendamento.' };
+            }
+
+            if (agendamento.status !== 'confirmado') {
+                return { error: 'Apenas agendamentos confirmados podem ser cancelados.' };
+            }
 
             const evento = await Evento.buscarPorId(agendamento.evento_id);
+            if (!evento) return { error: 'Evento não encontrado.' };
+
             const agora = new Date();
-            const dataEvento = new Date(evento.data_evento + ' ' + evento.hora_evento);
-            const horasRestantes = (dataEvento - agora) / (1000 * 60 * 60);
+            const dataEvento = new Date(`${evento.data_evento}T${evento.hora_evento}`);
+
+            if (Number.isNaN(dataEvento.getTime())) {
+                return { error: 'Data/hora do evento inválida.' };
+            }
+
+            const horasRestantes = (dataEvento.getTime() - agora.getTime()) / (1000 * 60 * 60);
 
             if (horasRestantes < 24) return { error: 'Não é possível cancelar menos de 24 horas antes do evento.' };
 
