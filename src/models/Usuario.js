@@ -24,7 +24,7 @@ class Usuario {
         try {
             const result = await run(
                 `INSERT INTO usuarios (nome, email, telefone, senha)
-                 VALUES (?, ?, ?, ?)`,
+                 VALUES ($1, $2, $3, $4)`,
                 [nome, email, telefone || null, senhaHash]
             );
             
@@ -73,7 +73,7 @@ class Usuario {
             
             // Atualizar último acesso
             await run(
-                'UPDATE usuarios SET ultimo_acesso = CURRENT_TIMESTAMP WHERE id = ?',
+                'UPDATE usuarios SET ultimo_acesso = CURRENT_TIMESTAMP WHERE id = $1',
                 [usuario.id]
             );
             
@@ -92,7 +92,7 @@ class Usuario {
      */
     static async buscarPorId(id) {
         try {
-            const usuario = await get('SELECT * FROM usuarios WHERE id = ?', [id]);
+            const usuario = await get('SELECT * FROM usuarios WHERE id = $1', [id]);
             if (usuario) delete usuario.senha;
             return usuario;
         } catch (err) {
@@ -106,7 +106,7 @@ class Usuario {
      */
     static async buscarPorEmail(email) {
         try {
-            return await get('SELECT * FROM usuarios WHERE email = ?', [email]);
+            return await get('SELECT * FROM usuarios WHERE email = $1', [email]);
         } catch (err) {
             console.error('Erro ao buscar usuário por email:', err);
             return null;
@@ -122,8 +122,8 @@ class Usuario {
         try {
             await run(
                 `UPDATE usuarios 
-                 SET nome = ?, telefone = ?
-                 WHERE id = ?`,
+                 SET nome = $1, telefone = $2
+                 WHERE id = $3`,
                 [nome, telefone || null, id]
             );
             
@@ -147,7 +147,7 @@ class Usuario {
             
             // Verificar senha atual
             const usuarioComSenha = await get(
-                'SELECT senha FROM usuarios WHERE id = ?',
+                'SELECT senha FROM usuarios WHERE id = $1',
                 [id]
             );
             
@@ -162,7 +162,7 @@ class Usuario {
             
             const nohash = bcrypt.hashSync(senhaNova, 10);
             
-            await run('UPDATE usuarios SET senha = ? WHERE id = ?', [nohash, id]);
+            await run('UPDATE usuarios SET senha = $1 WHERE id = $2', [nohash, id]);
             
             return { success: true };
         } catch (err) {
@@ -195,8 +195,8 @@ class Usuario {
             
             await run(
                 `UPDATE usuarios 
-                 SET faltas_consecutivas = ?, status = ?, bloqueado_ate = ?, total_faltas = total_faltas + 1
-                 WHERE id = ?`,
+                 SET faltas_consecutivas = $1, status = $2, bloqueado_ate = $3, total_faltas = total_faltas + 1
+                 WHERE id = $4`,
                 [novasFaltas, status, bloqueadoAte, usuarioId]
             );
             
@@ -215,7 +215,7 @@ class Usuario {
             await run(
                 `UPDATE usuarios 
                  SET status = 'ativo', bloqueado_ate = NULL, faltas_consecutivas = 0
-                 WHERE id = ?`,
+                 WHERE id = $1`,
                 [usuarioId]
             );
             
@@ -234,7 +234,7 @@ class Usuario {
             await run(
                 `UPDATE usuarios 
                  SET faltas_consecutivas = 0
-                 WHERE id = ?`,
+                 WHERE id = $1`,
                 [usuarioId]
             );
             

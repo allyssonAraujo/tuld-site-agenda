@@ -14,7 +14,7 @@ class Evento {
             return await all(
                 `SELECT * FROM eventos 
                  WHERE status = 'ativo' 
-                 AND data_evento >= DATE('now')
+                 AND data_evento >= CURRENT_DATE
                  AND vagas_disponiveis > 0
                  ORDER BY data_evento ASC, hora_evento ASC`
             );
@@ -29,7 +29,7 @@ class Evento {
      */
     static async buscarPorId(id) {
         try {
-            return await get('SELECT * FROM eventos WHERE id = ?', [id]);
+            return await get('SELECT * FROM eventos WHERE id = $1', [id]);
         } catch (err) {
             console.error('Erro ao buscar evento:', err);
             return null;
@@ -57,7 +57,7 @@ class Evento {
             await run(
                 `UPDATE eventos 
                  SET vagas_disponiveis = vagas_disponiveis - 1 
-                 WHERE id = ?`,
+                 WHERE id = $1`,
                 [eventoId]
             );
         } catch (err) {
@@ -73,7 +73,7 @@ class Evento {
             await run(
                 `UPDATE eventos 
                  SET vagas_disponiveis = vagas_disponiveis + 1 
-                 WHERE id = ?`,
+                 WHERE id = $1`,
                 [eventoId]
             );
         } catch (err) {
@@ -91,7 +91,7 @@ class Evento {
             const result = await run(
                 `INSERT INTO eventos 
                  (titulo, descricao, data_evento, hora_evento, vagas_totais, vagas_disponiveis, local, observacoes)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
                 [titulo, descricao, data_evento, hora_evento, vagas_totais, vagas_totais, local, observacoes]
             );
             
@@ -107,7 +107,7 @@ class Evento {
      */
     static async deletar(id) {
         try {
-            await run('DELETE FROM eventos WHERE id = ?', [id]);
+            await run('DELETE FROM eventos WHERE id = $1', [id]);
             return { success: true };
         } catch (err) {
             console.error('Erro ao deletar evento:', err);
@@ -123,29 +123,30 @@ class Evento {
             // Construir UPDATE dinamicamente apenas com campos fornecidos
             const fields = [];
             const params = [];
+            let paramIndex = 1;
             
             if (dados.titulo !== undefined) {
-                fields.push('titulo = ?');
+                fields.push(`titulo = $${paramIndex++}`);
                 params.push(dados.titulo);
             }
             if (dados.descricao !== undefined) {
-                fields.push('descricao = ?');
+                fields.push(`descricao = $${paramIndex++}`);
                 params.push(dados.descricao);
             }
             if (dados.data_evento !== undefined) {
-                fields.push('data_evento = ?');
+                fields.push(`data_evento = $${paramIndex++}`);
                 params.push(dados.data_evento);
             }
             if (dados.hora_evento !== undefined) {
-                fields.push('hora_evento = ?');
+                fields.push(`hora_evento = $${paramIndex++}`);
                 params.push(dados.hora_evento);
             }
             if (dados.status !== undefined) {
-                fields.push('status = ?');
+                fields.push(`status = $${paramIndex++}`);
                 params.push(dados.status);
             }
             if (dados.local !== undefined) {
-                fields.push('local = ?');
+                fields.push(`local = $${paramIndex++}`);
                 params.push(dados.local);
             }
             
@@ -154,7 +155,7 @@ class Evento {
             }
             
             params.push(id);
-            const sql = `UPDATE eventos SET ${fields.join(', ')} WHERE id = ?`;
+            const sql = `UPDATE eventos SET ${fields.join(', ')} WHERE id = $${paramIndex}`;
             await run(sql, params);
             
             return { success: true };
@@ -173,19 +174,19 @@ class Evento {
             
             const presentes = await get(
                 `SELECT COUNT(*) as total FROM agendamentos 
-                 WHERE evento_id = ? AND status = 'presente'`,
+                 WHERE evento_id = $1 AND status = 'presente'`,
                 [eventoId]
             );
             
             const ausentes = await get(
                 `SELECT COUNT(*) as total FROM agendamentos 
-                 WHERE evento_id = ? AND status = 'ausente'`,
+                 WHERE evento_id = $1 AND status = 'ausente'`,
                 [eventoId]
             );
             
             const confirmados = await get(
                 `SELECT COUNT(*) as total FROM agendamentos 
-                 WHERE evento_id = ? AND status = 'confirmado'`,
+                 WHERE evento_id = $1 AND status = 'confirmado'`,
                 [eventoId]
             );
             

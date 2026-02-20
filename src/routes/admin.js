@@ -122,7 +122,7 @@ router.put('/usuarios/:id', verificarSessao, verificarAdmin, async (req, res) =>
 
         if (updates.status) {
             // Atualizar status diretamente
-            await run('UPDATE usuarios SET status = ? WHERE id = ?', [updates.status, id]);
+            await run('UPDATE usuarios SET status = $1 WHERE id = $2', [updates.status, id]);
         }
 
         return res.json({ success: true });

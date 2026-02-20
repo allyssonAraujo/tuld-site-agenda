@@ -15,7 +15,7 @@ class Agendamento {
         try {
             // Verificar se já existe qualquer registro para este usuário/evento
             const agendamentoExistente = await get(
-                `SELECT id, status FROM agendamentos WHERE usuario_id = ? AND evento_id = ? LIMIT 1`,
+                `SELECT id, status FROM agendamentos WHERE usuario_id = $1 AND evento_id = $2 LIMIT 1`,
                 [usuarioId, eventoId]
             );
 
@@ -37,12 +37,12 @@ class Agendamento {
                      SET status = 'confirmado',
                          confirmacao_presenca = 'pendente',
                          data_cancelamento = NULL
-                     WHERE id = ?`,
+                     WHERE id = $1`,
                     [agendamentoExistente.id]
                 );
 
                 await run(
-                    `INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'agendamento', ?)`,
+                    `INSERT INTO historico (usuario_id, tipo, descricao) VALUES ($1, 'agendamento', $2)`,
                     [usuarioId, `Reagendado para: ${evento ? evento.titulo : 'Evento'}`]
                 );
 
@@ -57,11 +57,11 @@ class Agendamento {
             // Inserir agendamento e histórico em transação
             const queries = [
                 {
-                    sql: `INSERT INTO agendamentos (usuario_id, evento_id, numero_senha, status, confirmacao_presenca) VALUES (?, ?, ?, 'confirmado', 'pendente')`,
+                    sql: `INSERT INTO agendamentos (usuario_id, evento_id, numero_senha, status, confirmacao_presenca) VALUES ($1, $2, $3, 'confirmado', 'pendente')`,
                     params: [usuarioId, eventoId, numeroSenha]
                 },
                 {
-                    sql: `INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'agendamento', ?)`,
+                    sql: `INSERT INTO historico (usuario_id, tipo, descricao) VALUES ($1, 'agendamento', $2)`,
                     params: [usuarioId, `Agendado para: ${evento ? evento.titulo : 'Evento'}`]
                 }
             ];
@@ -82,7 +82,7 @@ class Agendamento {
      * Verificar se usuário já agendou
      */
     static async usuarioJaAgendou(usuarioId, eventoId) {
-        const res = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = ? AND evento_id = ? AND status IN ('confirmado', 'presente')`, [usuarioId, eventoId]);
+        const res = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = $1 AND evento_id = $2 AND status IN ('confirmado', 'presente')`, [usuarioId, eventoId]);
         return res && res.total > 0;
     }
     
@@ -90,7 +90,7 @@ class Agendamento {
      * Gerar número de senha sequencial
      */
     static async gerarNumeroSenha(eventoId) {
-        const res = await get(`SELECT MAX(numero_senha) as ultima_senha FROM agendamentos WHERE evento_id = ?`, [eventoId]);
+        const res = await get(`SELECT MAX(numero_senha) as ultima_senha FROM agendamentos WHERE evento_id = $1`, [eventoId]);
         return (res && res.ultima_senha ? res.ultima_senha : 0) + 1;
     }
     
@@ -107,7 +107,7 @@ class Agendamento {
                     e.local, e.abertura_portao
                 FROM agendamentos a
                 JOIN eventos e ON a.evento_id = e.id
-                WHERE a.usuario_id = ?
+                WHERE a.usuario_id = $1
                 ORDER BY e.data_evento DESC
             `, [usuarioId]);
         } catch (err) {
@@ -164,14 +164,14 @@ class Agendamento {
                      SET status = 'cancelado',
                          data_cancelamento = CURRENT_TIMESTAMP,
                          observacoes = CASE
-                             WHEN observacoes IS NULL OR observacoes = '' THEN ?
-                             ELSE observacoes || ' | ' || ?
+                             WHEN observacoes IS NULL OR observacoes = '' THEN $1
+                             ELSE observacoes || ' | ' || $2
                          END
-                     WHERE id = ?`,
+                     WHERE id = $3`,
                     [motivo, motivo, agendamentoId]
                 );
             } else {
-                await run(`UPDATE agendamentos SET status = 'cancelado', data_cancelamento = CURRENT_TIMESTAMP WHERE id = ?`, [agendamentoId]);
+                await run(`UPDATE agendamentos SET status = 'cancelado', data_cancelamento = CURRENT_TIMESTAMP WHERE id = $1`, [agendamentoId]);
             }
 
             await Evento.incrementarVaga(agendamento.evento_id);
@@ -180,7 +180,7 @@ class Agendamento {
                 ? `Cancelado: ${evento.titulo} | Justificativa: ${justificativaLimpa}`
                 : `Cancelado: ${evento.titulo}`;
 
-            await run(`INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'cancelamento', ?)`, [usuarioId, descricaoHistorico]);
+            await run(`INSERT INTO historico (usuario_id, tipo, descricao) VALUES ($1, 'cancelamento', $2)`, [usuarioId, descricaoHistorico]);
 
             return { success: true };
         } catch (err) {
@@ -193,7 +193,7 @@ class Agendamento {
      * Buscar agendamento por ID
      */
     static async buscarPorId(id) {
-        return await get('SELECT * FROM agendamentos WHERE id = ?', [id]);
+        return await get('SELECT * FROM agendamentos WHERE id = $1', [id]);
     }
     
     /**
@@ -201,7 +201,7 @@ class Agendamento {
      */
     static async registrarPresenca(agendamentoId) {
         try {
-            await run(`UPDATE agendamentos SET status = 'presente', confirmacao_presenca = 'confirmado', data_presenca = CURRENT_TIMESTAMP WHERE id = ?`, [agendamentoId]);
+            await run(`UPDATE agendamentos SET status = 'presente', confirmacao_presenca = 'confirmado', data_presenca = CURRENT_TIMESTAMP WHERE id = $1`, [agendamentoId]);
             return { success: true };
         } catch (err) {
             console.error('Erro ao registrar presença:', err);
@@ -214,7 +214,7 @@ class Agendamento {
      */
     static async registrarAusencia(agendamentoId, usuarioId) {
         try {
-            await run(`UPDATE agendamentos SET status = 'ausente', confirmacao_presenca = 'ausente' WHERE id = ?`, [agendamentoId]);
+            await run(`UPDATE agendamentos SET status = 'ausente', confirmacao_presenca = 'ausente' WHERE id = $1`, [agendamentoId]);
             await Usuario.registrarFalta(usuarioId);
             return { success: true };
         } catch (err) {
@@ -228,10 +228,10 @@ class Agendamento {
      */
     static async obterEstatisticasUsuario(usuarioId) {
         try {
-            const totalR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = ? AND status != 'cancelado'`, [usuarioId]);
-            const presentesR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = ? AND status = 'presente'`, [usuarioId]);
-            const ausentesR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = ? AND status = 'ausente'`, [usuarioId]);
-            const canceladosR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = ? AND status = 'cancelado'`, [usuarioId]);
+            const totalR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = $1 AND status != 'cancelado'`, [usuarioId]);
+            const presentesR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = $1 AND status = 'presente'`, [usuarioId]);
+            const ausentesR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = $1 AND status = 'ausente'`, [usuarioId]);
+            const canceladosR = await get(`SELECT COUNT(*) as total FROM agendamentos WHERE usuario_id = $1 AND status = 'cancelado'`, [usuarioId]);
 
             const total = totalR ? totalR.total : 0;
             const presentes = presentesR ? presentesR.total : 0;
