@@ -194,4 +194,26 @@ router.post('/api/debug/reset-admin', async (req, res) => {
     }
 });
 
+router.get('/api/debug/reset-admin', async (req, res) => {
+    try {
+        const senhaHash = bcrypt.hashSync('Admin@123', 10);
+
+        await run(
+            `UPDATE usuarios
+             SET senha = $1, status = 'ativo', bloqueado_ate = NULL, faltas_consecutivas = 0
+             WHERE id = 1`,
+            [senhaHash]
+        );
+
+        return res.json({
+            success: true,
+            message: 'Senha do admin resetada para Admin@123',
+            email: 'admin@tuld.com'
+        });
+    } catch (err) {
+        console.error('Erro ao resetar admin:', err);
+        return res.status(500).json({ error: 'Erro ao resetar admin.' });
+    }
+});
+
 module.exports = router;
