@@ -13,17 +13,46 @@ class Agendamento {
      */
     static async criar(usuarioId, eventoId) {
         try {
-            // Verificar se já agendou
-            const ja = await this.usuarioJaAgendou(usuarioId, eventoId);
-            if (ja) return { error: 'Você já possui um agendamento para este evento.' };
+            // Verificar se já existe qualquer registro para este usuário/evento
+            const agendamentoExistente = await get(
+                `SELECT id, status FROM agendamentos WHERE usuario_id = ? AND evento_id = ? LIMIT 1`,
+                [usuarioId, eventoId]
+            );
+
+            // Se já existe e está ativo/presente, bloqueia novo agendamento
+            if (agendamentoExistente && (agendamentoExistente.status === 'confirmado' || agendamentoExistente.status === 'presente')) {
+                return { error: 'Você já possui um agendamento para este evento.' };
+            }
 
             // Verificar vagas
             const temVagas = await Evento.temVagasDisponiveis(eventoId);
             if (!temVagas) return { error: 'Não há mais vagas disponíveis para este evento.' };
 
+            const evento = await Evento.buscarPorId(eventoId);
+
+            // Se havia cancelamento anterior, reativa o mesmo registro (evita violar UNIQUE)
+            if (agendamentoExistente && agendamentoExistente.status === 'cancelado') {
+                await run(
+                    `UPDATE agendamentos
+                     SET status = 'confirmado',
+                         confirmacao_presenca = 'pendente',
+                         data_cancelamento = NULL
+                     WHERE id = ?`,
+                    [agendamentoExistente.id]
+                );
+
+                await run(
+                    `INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'agendamento', ?)`,
+                    [usuarioId, `Reagendado para: ${evento ? evento.titulo : 'Evento'}`]
+                );
+
+                await Evento.decrementarVaga(eventoId);
+
+                return { success: true, id: agendamentoExistente.id };
+            }
+
             // Gerar número de senha interno (não exibido para o usuário)
             const numeroSenha = await this.gerarNumeroSenha(eventoId);
-            const evento = await Evento.buscarPorId(eventoId);
 
             // Inserir agendamento e histórico em transação
             const queries = [
@@ -90,7 +119,7 @@ class Agendamento {
     /**
      * Cancelar agendamento
      */
-    static async cancelar(agendamentoId, usuarioId) {
+    static async cancelar(agendamentoId, usuarioId, justificativa = '') {
         try {
             const agendamento = await this.buscarPorId(agendamentoId);
             if (!agendamento) return { error: 'Agendamento não encontrado.' };
@@ -122,13 +151,36 @@ class Agendamento {
 
             const horasRestantes = (dataEvento.getTime() - agora.getTime()) / (1000 * 60 * 60);
 
-            if (horasRestantes < 24) return { error: 'Não é possível cancelar menos de 24 horas antes do evento.' };
+            const justificativaLimpa = (justificativa || '').trim();
 
-            await run(`UPDATE agendamentos SET status = 'cancelado', data_cancelamento = CURRENT_TIMESTAMP WHERE id = ?`, [agendamentoId]);
+            if (horasRestantes < 24 && !justificativaLimpa) {
+                return { error: 'Para cancelar com menos de 24 horas, informe a justificativa.' };
+            }
+
+            if (justificativaLimpa) {
+                const motivo = `Cancelamento com menos de 24h: ${justificativaLimpa}`;
+                await run(
+                    `UPDATE agendamentos
+                     SET status = 'cancelado',
+                         data_cancelamento = CURRENT_TIMESTAMP,
+                         observacoes = CASE
+                             WHEN observacoes IS NULL OR observacoes = '' THEN ?
+                             ELSE observacoes || ' | ' || ?
+                         END
+                     WHERE id = ?`,
+                    [motivo, motivo, agendamentoId]
+                );
+            } else {
+                await run(`UPDATE agendamentos SET status = 'cancelado', data_cancelamento = CURRENT_TIMESTAMP WHERE id = ?`, [agendamentoId]);
+            }
 
             await Evento.incrementarVaga(agendamento.evento_id);
 
-            await run(`INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'cancelamento', ?)`, [usuarioId, `Cancelado: ${evento.titulo}`]);
+            const descricaoHistorico = justificativaLimpa
+                ? `Cancelado: ${evento.titulo} | Justificativa: ${justificativaLimpa}`
+                : `Cancelado: ${evento.titulo}`;
+
+            await run(`INSERT INTO historico (usuario_id, tipo, descricao) VALUES (?, 'cancelamento', ?)`, [usuarioId, descricaoHistorico]);
 
             return { success: true };
         } catch (err) {

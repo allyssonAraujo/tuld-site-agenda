@@ -14,19 +14,20 @@ const Evento = require('../models/Evento');
 router.post('/criar', verificarSessao, async (req, res) => {
     const { evento_id } = req.body;
     const usuarioId = req.session.usuario.id;
+    const eventoIdNum = Number(evento_id);
     
-    if (!evento_id) {
+    if (!evento_id || Number.isNaN(eventoIdNum)) {
         return res.status(400).json({ error: 'Evento não especificado.' });
     }
     
     try {
         // Verificar se evento existe
-        const evento = await Evento.buscarPorId(evento_id);
+        const evento = await Evento.buscarPorId(eventoIdNum);
         if (!evento) {
             return res.status(404).json({ error: 'Evento não encontrado.' });
         }
         
-        const resultado = await Agendamento.criar(usuarioId, evento_id);
+        const resultado = await Agendamento.criar(usuarioId, eventoIdNum);
         
         if (resultado.error) {
             return res.status(400).json({ error: resultado.error });
@@ -47,7 +48,7 @@ router.post('/criar', verificarSessao, async (req, res) => {
  * POST /api/agendamento/cancelar - Cancelar agendamento
  */
 router.post('/cancelar', verificarSessao, async (req, res) => {
-    const { agendamento_id } = req.body;
+    const { agendamento_id, justificativa } = req.body;
     const usuarioId = req.session.usuario.id;
     
     if (!agendamento_id) {
@@ -55,7 +56,7 @@ router.post('/cancelar', verificarSessao, async (req, res) => {
     }
     
     try {
-        const resultado = await Agendamento.cancelar(agendamento_id, usuarioId);
+        const resultado = await Agendamento.cancelar(agendamento_id, usuarioId, justificativa);
         
         if (resultado.error) {
             return res.status(400).json({ error: resultado.error });

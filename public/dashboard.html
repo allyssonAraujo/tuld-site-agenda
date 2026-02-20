@@ -228,14 +228,29 @@
         }
 
         document.getElementById('btnConfirmarAgendamento').addEventListener('click', async () => {
+            const btnConfirmar = document.getElementById('btnConfirmarAgendamento');
+
+            if (!eventoEmAgendamento) {
+                mostrarMensagem('Selecione um evento antes de confirmar o agendamento.', 'error');
+                return;
+            }
+
+            btnConfirmar.disabled = true;
             try {
                 const response = await fetch('/api/agendamento/criar', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ evento_id: eventoEmAgendamento })
                 });
-                
-                const data = await response.json();
+
+                const raw = await response.text();
+                let data;
+                try {
+                    data = raw ? JSON.parse(raw) : {};
+                } catch {
+                    data = { error: raw ? raw.slice(0, 250) : `Resposta inesperada (${response.status})` };
+                }
                 
                 if (!response.ok) {
                     throw new Error(data.error || 'Erro ao agendar');
@@ -243,6 +258,7 @@
                 
                 document.getElementById('agendarModal').style.display = 'none';
                 document.getElementById('sucessoModal').style.display = 'flex';
+                eventoEmAgendamento = null;
                 
                 // Recarregar dados
                 setTimeout(() => {
@@ -251,6 +267,8 @@
                 
             } catch (error) {
                 mostrarMensagem(error.message, 'error');
+            } finally {
+                btnConfirmar.disabled = false;
             }
         });
 

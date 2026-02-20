@@ -174,6 +174,38 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Lista de Presença na Tela -->
+            <section class="card terreiro mt-4">
+                <div class="barra-verde" aria-hidden="true"></div>
+                <div class="card-content">
+                    <h3>🧾 Lista de Presença (Visualização)</h3>
+                    <p class="text-muted">Exibe os registros com justificativa de cancelamento quando houver.</p>
+
+                    <div style="overflow-x: auto; margin-top: 12px;">
+                        <table class="user-table" id="presenceTable">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Título do Evento</th>
+                                    <th>Data do Evento</th>
+                                    <th>Senha</th>
+                                    <th>Justificativa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="presenceTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 20px;">Carregando lista...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="nenhumaPresenca" class="alert alert-info" style="display: none; text-align: center; margin-top: 20px;">
+                        Nenhum registro de presença encontrado para o filtro selecionado.
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -183,6 +215,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script>
         let usuariosData = [];
+        let presencasData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             carregarUsuarios();
@@ -190,6 +223,7 @@
             document.getElementById('btnDownloadPresencePDF').addEventListener('click', downloadPresencePDF);
             document.getElementById('filterStatus').addEventListener('change', filtrarUsuarios);
             populateEventoSelect();
+            carregarListaPresenca();
         });
 
         async function carregarUsuarios() {
@@ -335,9 +369,55 @@
                     sel.appendChild(opt);
                 });
                 sel.value = '';
+                sel.addEventListener('change', carregarListaPresenca);
             } catch (err) {
                 console.error('Erro ao popular eventos:', err);
             }
+        }
+
+        async function carregarListaPresenca() {
+            try {
+                const eventoId = document.getElementById('filterEventoPresence').value;
+                const url = eventoId
+                    ? `/api/admin/relatorio/presencas?evento_id=${encodeURIComponent(eventoId)}`
+                    : '/api/admin/relatorio/presencas';
+
+                const res = await fetch(url, { credentials: 'same-origin' });
+                if (!res.ok) throw new Error('Falha ao carregar lista de presença');
+
+                const data = await res.json();
+                presencasData = data.presencas || [];
+                renderizarListaPresenca(presencasData);
+            } catch (err) {
+                console.error('Erro ao carregar lista de presença:', err);
+                mostrarMensagem('Erro ao carregar lista de presença', 'error');
+            }
+        }
+
+        function renderizarListaPresenca(rows) {
+            const tbody = document.getElementById('presenceTableBody');
+            const empty = document.getElementById('nenhumaPresenca');
+            tbody.innerHTML = '';
+
+            if (!rows.length) {
+                empty.style.display = 'block';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Nenhum registro encontrado.</td></tr>';
+                return;
+            }
+
+            empty.style.display = 'none';
+
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${r.nome || '-'}</td>
+                    <td>${r.titulo_evento || '-'}</td>
+                    <td>${formatDate(r.data_evento)}</td>
+                    <td>${(r.senha ?? '-')}</td>
+                    <td>${r.justificativa || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
         async function downloadPresenceCSV() {
@@ -357,13 +437,14 @@
                     return;
                 }
                 const csv = [];
-                csv.push(['Nome', 'Título do Evento', 'Data do Evento', 'Senha', 'Presença'].map(h => `"${h}"`).join(','));
+                csv.push(['Nome', 'Título do Evento', 'Data do Evento', 'Senha', 'Justificativa', 'Presença'].map(h => `"${h}"`).join(','));
                 rows.forEach(r => {
                     const line = [
                         `"${(r.nome||'').replace(/"/g,'""')}"`,
                         `"${(r.titulo_evento||'').replace(/"/g,'""')}"`,
                         `"${formatDate(r.data_evento)}"`,
                         `"${(r.senha||'').toString().replace(/"/g,'""')}"`,
+                        `"${(r.justificativa||'').toString().replace(/"/g,'""')}"`,
                         '""'
                     ].join(',');
                     csv.push(line);
@@ -399,8 +480,8 @@
                     return;
                 }
 
-                const headers = ['Nome', 'Título do Evento', 'Data do Evento', 'Senha', 'Presença'];
-                const body = rows.map(r => [r.nome || '', r.titulo_evento || '', formatDate(r.data_evento), (r.senha||''), '']);
+                const headers = ['Nome', 'Título do Evento', 'Data do Evento', 'Senha', 'Justificativa', 'Presença'];
+                const body = rows.map(r => [r.nome || '', r.titulo_evento || '', formatDate(r.data_evento), (r.senha||''), (r.justificativa || ''), '']);
 
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'pt', 'a4');
@@ -424,10 +505,11 @@
                     headStyles: { fillColor: [240,240,240], textColor: 20 },
                     columnStyles: {
                         0: { cellWidth: 140 },
-                        1: { cellWidth: 160 },
+                        1: { cellWidth: 120 },
                         2: { cellWidth: 80 },
-                        3: { cellWidth: 60 },
-                        4: { cellWidth: 110 }
+                        3: { cellWidth: 50 },
+                        4: { cellWidth: 120 },
+                        5: { cellWidth: 60 }
                     }
                 });
 

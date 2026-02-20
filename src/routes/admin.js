@@ -163,7 +163,8 @@ router.get('/relatorio/presencas', verificarSessao, verificarAdmin, async (req, 
     try {
         const eventoId = req.query.evento_id;
         let sql = `
-            SELECT a.numero_senha as senha, u.nome as nome, e.titulo as titulo_evento, e.data_evento as data_evento
+            SELECT a.numero_senha as senha, u.nome as nome, e.titulo as titulo_evento, e.data_evento as data_evento,
+                   a.observacoes as justificativa
             FROM agendamentos a
             JOIN usuarios u ON a.usuario_id = u.id
             JOIN eventos e ON a.evento_id = e.id
@@ -177,7 +178,14 @@ router.get('/relatorio/presencas', verificarSessao, verificarAdmin, async (req, 
 
         const rows = await all(sql, params);
         // add empty presencia field
-        const result = rows.map(r => ({ senha: r.senha, nome: r.nome, titulo_evento: r.titulo_evento, data_evento: r.data_evento, presencia: '' }));
+        const result = rows.map(r => ({
+            senha: r.senha,
+            nome: r.nome,
+            titulo_evento: r.titulo_evento,
+            data_evento: r.data_evento,
+            justificativa: r.justificativa || '',
+            presencia: ''
+        }));
         return res.json({ presencas: result });
     } catch (err) {
         console.error('Erro ao gerar lista de presenças:', err);

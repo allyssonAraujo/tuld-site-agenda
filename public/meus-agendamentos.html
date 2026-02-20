@@ -62,6 +62,11 @@
             <div class="modal-body" id="detalhesContent">
                 <!-- Preenchido dinamicamente -->
             </div>
+            <div id="justificativaContainer" class="mt-3" style="display:none; padding: 0 1.5rem 1rem 1.5rem;">
+                <label for="justificativaCancelamento" style="display:block; font-weight:600; margin-bottom:0.5rem;">Justificativa para cancelamento com menos de 24h</label>
+                <textarea id="justificativaCancelamento" rows="3" placeholder="Descreva o motivo do cancelamento" style="width:100%;"></textarea>
+                <small class="form-hint">Este campo é obrigatório quando faltar menos de 24 horas para o evento.</small>
+            </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-action="close">Fechar</button>
                 <button class="btn btn-danger" id="btnCancelarAgendamento" style="display: none;">Cancelar Agendamento</button>
@@ -160,8 +165,10 @@
             
             const modal = document.getElementById('detalhesModal');
             const content = document.getElementById('detalhesContent');
+            const justificativaContainer = document.getElementById('justificativaContainer');
+            const justificativaField = document.getElementById('justificativaCancelamento');
             
-            const dataEvento = new Date(agendamento.data_evento);
+            const dataEvento = new Date(`${agendamento.data_evento}T${agendamento.hora_evento}`);
             const agora = new Date();
             
             content.innerHTML = `
@@ -178,31 +185,50 @@
             
             const btnCancelar = document.getElementById('btnCancelarAgendamento');
             
-            // Mostrar botão cancelar apenas se puder (24h antes)
+            // Cancelamento com menos de 24h exige justificativa
             const horasRestantes = (dataEvento - agora) / (1000 * 60 * 60);
             
-            if (agendamento.status === 'confirmado' && horasRestantes >= 24) {
+            if (agendamento.status === 'confirmado') {
                 btnCancelar.style.display = 'block';
-                btnCancelar.onclick = () => cancelarAgendamento(agendamentoId);
+                if (horasRestantes < 24) {
+                    justificativaContainer.style.display = 'block';
+                    btnCancelar.textContent = 'Cancelar com Justificativa';
+                    btnCancelar.onclick = () => cancelarAgendamento(agendamentoId, true);
+                } else {
+                    justificativaContainer.style.display = 'none';
+                    justificativaField.value = '';
+                    btnCancelar.textContent = 'Cancelar Agendamento';
+                    btnCancelar.onclick = () => cancelarAgendamento(agendamentoId, false);
+                }
             } else {
                 btnCancelar.style.display = 'none';
+                justificativaContainer.style.display = 'none';
+                justificativaField.value = '';
             }
             
             modal.style.display = 'flex';
         }
 
         function abrirCancelamento(agendamentoId) {
-            cancelarAgendamento(agendamentoId);
+            mostrarDetalhes(agendamentoId);
         }
 
-        async function cancelarAgendamento(agendamentoId) {
+        async function cancelarAgendamento(agendamentoId, exigeJustificativa = false) {
+            const justificativaField = document.getElementById('justificativaCancelamento');
+            const justificativa = justificativaField ? justificativaField.value.trim() : '';
+
+            if (exigeJustificativa && !justificativa) {
+                mostrarMensagem('Informe a justificativa para cancelar com menos de 24 horas.', 'error');
+                return;
+            }
+
             if (!confirm('Deseja cancelar este agendamento?')) return;
             
             try {
                 const response = await fetch('/api/agendamento/cancelar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ agendamento_id: agendamentoId })
+                    body: JSON.stringify({ agendamento_id: agendamentoId, justificativa })
                 });
                 
                 const data = await response.json();
@@ -213,6 +239,7 @@
                 
                 mostrarMensagem('Agendamento cancelado com sucesso!', 'success');
                 document.getElementById('detalhesModal').style.display = 'none';
+                if (justificativaField) justificativaField.value = '';
                 carregarAgendamentos();
                 
             } catch (error) {
