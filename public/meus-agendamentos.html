@@ -80,6 +80,17 @@
         let agendamentosGlobal = [];
         let filtroAtivo = 'todos';
 
+        function combinarDataHora(dataValor, horaValor) {
+            if (!dataValor || !horaValor) return null;
+
+            const dataString = String(dataValor);
+            const dataParte = dataString.includes('T') ? dataString.split('T')[0] : dataString.slice(0, 10);
+            const horaParte = String(horaValor).slice(0, 8);
+            const dataEvento = new Date(`${dataParte}T${horaParte}`);
+
+            return Number.isNaN(dataEvento.getTime()) ? null : dataEvento;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             carregarAgendamentos();
             
@@ -168,8 +179,13 @@
             const justificativaContainer = document.getElementById('justificativaContainer');
             const justificativaField = document.getElementById('justificativaCancelamento');
             
-            const dataEvento = new Date(`${agendamento.data_evento}T${agendamento.hora_evento}`);
+            const dataEvento = combinarDataHora(agendamento.data_evento, agendamento.hora_evento);
             const agora = new Date();
+
+            if (!dataEvento) {
+                mostrarMensagem('Data/hora do evento inválida para cancelamento.', 'error');
+                return;
+            }
             
             content.innerHTML = `
                 <h3>${agendamento.titulo}</h3>

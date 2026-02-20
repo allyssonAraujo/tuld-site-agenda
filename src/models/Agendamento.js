@@ -7,6 +7,24 @@ const Evento = require('./Evento');
 const Usuario = require('./Usuario');
 
 class Agendamento {
+
+    static combinarDataHora(dataValor, horaValor) {
+        if (!dataValor || !horaValor) return null;
+
+        let dataParte = null;
+
+        if (dataValor instanceof Date) {
+            dataParte = dataValor.toISOString().slice(0, 10);
+        } else {
+            const dataString = String(dataValor);
+            dataParte = dataString.includes('T') ? dataString.split('T')[0] : dataString.slice(0, 10);
+        }
+
+        const horaParte = String(horaValor).slice(0, 8);
+        const dataEvento = new Date(`${dataParte}T${horaParte}`);
+
+        return Number.isNaN(dataEvento.getTime()) ? null : dataEvento;
+    }
     
     /**
      * Criar novo agendamento
@@ -143,9 +161,9 @@ class Agendamento {
             if (!evento) return { error: 'Evento não encontrado.' };
 
             const agora = new Date();
-            const dataEvento = new Date(`${evento.data_evento}T${evento.hora_evento}`);
+            const dataEvento = this.combinarDataHora(evento.data_evento, evento.hora_evento);
 
-            if (Number.isNaN(dataEvento.getTime())) {
+            if (!dataEvento) {
                 return { error: 'Data/hora do evento inválida.' };
             }
 
